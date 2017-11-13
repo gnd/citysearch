@@ -777,9 +777,8 @@ class Services_Soundcloud
     protected function _buildUrl($path, $params = array(), $includeVersion = true)
     {
         if (!$this->_accessToken) {
-            //this seems old
+            //gnd change - this seems old
             //$params['consumer_key'] = $this->_clientId;
-            
             $params['client_id'] = $this->_clientId;
         }
 
