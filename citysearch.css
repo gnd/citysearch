@@ -1,0 +1,74 @@
+span.tags {
+	color: #333333;
+	font-size: 10px;
+}
+
+span.artist_name {
+	#margin-bottom: 20px;
+	background-color: #ffff33;
+	width: 100%;
+}
+
+span.artist_name_ignored {
+        margin-bottom: 20px;
+        background-color: #ff3333;
+        width: 100%;
+}
+
+span.artist_name_followed {
+        margin-bottom: 20px;
+        background-color: #33ff33;
+        width: 100%;
+}
+
+span.artist_name_seen {
+        margin-bottom: 20px;
+        background-color: #3333ff;
+        width: 100%;
+}
+
+span.artist_info {
+        #margin-bottom: 20px;
+        width: 100%;
+        font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;
+}
+
+div.artist {
+	margin-bottom: 30px;
+	background-color: #ffffff;
+	border: 1px;
+}
+
+table {
+    border-spacing: 0px;
+    borderd-width: 0px;
+}
+
+td.artist_name {
+	background-color: #ffff33;
+}
+
+td.artist_info {
+        font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;
+}
+
+a.track:link {color: #222222; font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px; }
+a.track:visited {color: #222222; font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px; }
+a.track:hover {color: #222222; font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
+a.track:active {color: #222222; font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
+
+a.ignore:link {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px; }
+a.ignore:visited {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px; }
+a.ignore:hover {color: #ff0000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
+a.ignore:active {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
+
+a.seen:link {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px; }
+a.seen:visited {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px; }
+a.seen:hover {color: #ff0000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
+a.seen:active {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
+
+a.artist:link {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 14px; }
+a.artist:visited {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 14px; }
+a.artist:hover {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 14px;}
+a.artist:active {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 14px;}
+
