@@ -5,9 +5,11 @@
  *
  * An open source application to mine users from Soundcloud
  *
- * This content is released under the MIT License (MIT)
+ * This is based on php-soundcloud available at 
+ * https://github.com/mptre/php-soundcloud
+ * 
  *
- * 2013 - 2017, gnd
+ * 2012 - 2017, gnd
  *
  */
 

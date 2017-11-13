@@ -5,9 +5,11 @@
  *
  * An open source application to mine users from Soundcloud
  *
- * This content is released under the MIT License (MIT)
+ * This is based on php-soundcloud available at 
+ * https://github.com/mptre/php-soundcloud
+ * 
  *
- * 2013 - 2017, gnd
+ * 2012 - 2017, gnd
  *
  */
  
@@ -56,12 +58,12 @@ class db {
     }
 
     function addCityAlias($uid, $city, $alias) {
-        $result = $this->db->query($kak = "INSERT INTO " . $this->prfx . "_alias VALUES(0, $uid, '$city', '$alias')");
+        $result = $this->db->query("INSERT INTO " . $this->prfx . "_alias VALUES(0, $uid, '$city', '$alias')");
         return $result;
     }
 
     function delCityAlias($uid, $aliasid) {
-        $result = $this->db->query($kak = "DELETE FROM " . $this->prfx . "_alias WHERE uid = $uid AND id = '$aliasid' LIMIT 1");
+        $result = $this->db->query("DELETE FROM " . $this->prfx . "_alias WHERE uid = $uid AND id = '$aliasid' LIMIT 1");
         return $result;
     }
 
