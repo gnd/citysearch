@@ -1,0 +1,16 @@
+<?php
+
+// db settings
+$db_host = "";
+$db_name = "";
+$db_user = "";
+$db_pass = "";
+$db_prfx = "";
+
+// soundcloud settings
+$sc_client_id = "";
+$sc_client_secret = "";
+$sc_redirect = "";
+$sc_page_limit = 150;
+
+?>
