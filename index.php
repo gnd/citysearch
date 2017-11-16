@@ -915,6 +915,11 @@ else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
     
     // FILTER FORM
     pagetop();
+    echo "<i>This searches for all musicians that are followed by you and come from the city you specify bellow.<br>";
+    echo "The depth argument is a number starting from 0.<br>";
+    echo "Depth 0 searches for all users from the given city that are followed by you, and all the users from the city followed by these users.</br>";
+    echo 'Depth 1 adds the users found in depth 0 to the initial groups of users, ad searches all of them for further users from the given city.<br/>';
+    echo "This can get pretty big pretty soon, and takes cca 1 minute in depth 1, so use with care...</i><br/><br/>";
     echo "<b>search for all musicians from a city:</b>";
     filterform_citysearch($qcity, $max_depth, $show_ign);
     echo "</div></body></html>";
