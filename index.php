@@ -175,17 +175,23 @@ function countryalias($country, $alias) {
  * Prints the HTML page top and navigatio menu
  * 
  */
-function pagetop() {
+function pagetop($dev_version) {
     echo "<html><head>\n";
     echo "<link href=\"citysearch.css\" rel=\"stylesheet\" type=\"text/css\" />\n";
-    echo "<title>citysearch</title></head><body>\n";
+    echo "<title>citysearch</title>\n";
+    echo "<script type=\"text/javascript\" src=\"js.js\"></script>\n";
+    echo "</head><body>\n";
     echo "<div class=\"main\" style=\"width: 800px;\">\n";
     echo "<div class=\"nav\" >\n";
     echo "<a href=\"/citysearch/index.php\">main</a> / \n";
     echo "<a href=\"/citysearch/index.php?seek=1\">search</a> / \n";
     echo "<a href=\"/citysearch/index.php?userstalk=1\">userstalk</a> / \n";
     echo "<a href=\"/citysearch/index.php?aliases=1\">aliases</a> / \n";
-    echo "Logged in as " . $_SESSION["user_data"]["username"];
+    if ($dev_version == 1) {
+        echo "Logged in as " . $_SESSION["user_data"]["username"] . " (dev version)";
+    } else {
+        echo "Logged in as " . $_SESSION["user_data"]["username"];
+    }
     echo " [<a href=\"/citysearch/index.php?logout=1\">logout</a>]\n";
     echo "</div>\n";
     echo "</div>\n";
@@ -198,11 +204,13 @@ function pagetop() {
  * This first checks whether a user is in ignored (and later also seen) users
  * 
  * @param array $users results provided by the search
- * @param array $ignored_users preloaded array of ignored user ids
  */
-function display_user_results($users, $ignored_users) {
+function display_user_results($users) {
     if (count($users) > 0 ) {
-        echo "\n\n<table style=\"border: 0px;\"><tr><td>name</td><td>trcks</td><td>rnk</td><td>fol</td><td>description</td></tr>\n";
+        echo "<span id=\"switch_seen\" onclick=\"switch_seen()\">hide seen</span>\n";
+        echo "\n\n<table style=\"border: 0px;\">\n";
+        echo "<thead><tr><th>name</th><th>tracks</th><th>rank</th><th>followers</th><th>description</th></tr></thead>\n";
+        echo "<tbody>";
         foreach ( $users as $user ) {
             $link = $user["permalink"];
             $name = $user["username"];
@@ -210,31 +218,61 @@ function display_user_results($users, $ignored_users) {
             $desc = $user["description"];
             $followers = $user["count_followers"];
             $rank = $user["rank"];
-            if (in_array($user["id"], $ignored_users) ) {
-                echo "<tr><td class=\"artist_name_ignored\"><a class=\"artist\" target=\"_blank\" href=\"http://soundcloud.com/" . $link . "\">" . $name . "</a> ";
-                echo "[<a class=\"ignore\" target=\"_blank\" href=\"index.php?unignore=" . $user["id"] . "\">unign</a>";
-                echo ",<a class=\"seen\" target=\"_blank\" href=\"index.php?seen=" . $user["id"] . "\">see</a>]</td>";
-                echo "<td><span class=\"artist_info\"><b> " . $tracks . "</b></span></td>";
-                echo "<td><span class=\"artist_info\" title=\"$desc\">".substr(strip_tags($desc),0,250)."</span></td></tr>\n";
-            } else if (in_array($user["id"], $seen_users) ) {
-                echo "<tr><td class=\"artist_name_seen\"><a class=\"artist\" target=\"_blank\" href=\"http://soundcloud.com/" . $link . "\">" . $name . "</a> ";
-                echo "[<a class=\"ignore\" target=\"_blank\" href=\"index.php?ignore=" . $user["id"] . "\">ign</a>";
-                echo ",<a class=\"seen\" target=\"_blank\" href=\"index.php?seen=" . $user["id"] . "\">unsee</a>]</td>";
-                echo "<td><span class=\"artist_info\"><b> " . $tracks . "</b></span></td>";
-                echo "<td><span class=\"artist_info\" title=\"$desc\">".substr(strip_tags($desc),0,250)."</span></td></tr>\n";
-            } else {
-                echo "<tr><td class=\"artist_name\"><a class=\"artist\" target=\"_blank\" href=\"http://soundcloud.com/" . $link . "\">" . $name . "</a> ";
-                echo "[<a class=\"ignore\" target=\"_blank\" href=\"index.php?ignore=" . $user["id"] . "\">ign</a>";
-                echo ",<a class=\"seen\" target=\"_blank\" href=\"index.php?seen=" . $user["id"] . "\">see</a>]</td>";
-                echo "<td class=\"artist_info\"><b> " . $tracks . "</b></td>";
-                echo "<td class=\"artist_info\"><b> " . $rank . "</b></td>";
-                echo "<td class=\"artist_info\"><b> " . $followers . "</b></td>";
-                echo "<td class=\"artist_info\" title=\"".strip_tags(addslashes($desc))."\">".substr(strip_tags(addslashes($desc)),0,250)."</td></tr>\n";
-            }
+
+            // the actual filtering of ignored / seen is happening on js level
+            echo "<tr id=\"".$user["id"]."\"><td class=\"artist_name\"><a class=\"artist\" target=\"_blank\" href=\"http://soundcloud.com/" . $link . "\">" . $name . "</a> ";
+            echo "[<a class=\"ignore\" onclick=ignore(".$user["id"].")\">ign</a>";
+            echo ",<a class=\"seen\" onclick=\"see(".$user["id"].")\">see</a>]</td>";
+            echo "<td class=\"artist_info\"><b> " . $tracks . "</b></td>";
+            echo "<td class=\"artist_info\"><b> " . $rank . "</b></td>";
+            echo "<td class=\"artist_info\"><b> " . $followers . "</b></td>";
+            echo "<td class=\"artist_info\" title=\"".strip_tags(addslashes($desc))."\">".substr(strip_tags(addslashes($desc)),0,250)."</td></tr>\n";
         }
+        echo "</tbody>";
         echo "</table>\n\n";
     }
 }
+
+
+/**
+ * Outputs found users as a XML
+ * 
+ * 
+ * @param array $users results provided by the search
+ */
+function display_user_results_xml($users, $duration) {
+    
+    // Output XML
+    header('Content-Type: application/xml');
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+    echo "<results>\n";
+    echo "<duration>".$duration."</duration>\n";
+    if (count($users) > 0 ) {
+        echo "<users>\n";
+        foreach ( $users as $user ) {
+            $id = $user["id"];
+            $link = $user["permalink"];
+            $name = $user["username"];
+            $tracks = $user["tracks"];
+            $description = $user["description"];
+            $followers = $user["count_followers"];
+            $rank = $user["rank"];
+            
+            echo "<user>\n";
+                echo "\t<id>".$id."</id>\n";
+                echo "\t<name>".$name."</name>\n";
+                echo "\t<link>".$link."</link>\n";
+                echo "\t<tracks>".$tracks."</tracks>\n";
+                echo "\t<followers>".$followers."</followers>\n";
+                echo "\t<description>\n\t\t".str_replace("&", "&#038;", strip_tags(addslashes($description)))."\n\t</description>\n";
+                echo "\t<rank>".$rank."</rank>\n";
+            echo "</user>\n";
+        }
+    }
+    echo "</users>\n";
+    echo "</results>\n";
+}
+
 
 /**
  * Sorts found users according to how many tracks they have
@@ -308,6 +346,7 @@ if (isset($_REQUEST["ignore"]) && ($_REQUEST["ignore"] != 0)) {
     header('Location: index.php');
 }
 
+
 /**
  * Adds a user id into the seen list
  * 
@@ -327,6 +366,29 @@ if (isset($_REQUEST["seen"]) && ($_REQUEST["seen"] != 0)) {
     
     header('Location: index.php');
 }
+
+
+/**
+ * Shows seen users as a XML
+ * 
+ */
+ if (isset($_REQUEST["seenxml"]) && ($_REQUEST["seenxml"] != 0)) {
+    
+    // Load seen ids
+    $seen_ids = array();
+    $data = $mydb->getSeen($_SESSION["user_data"]["id"]);
+
+    // Output XML
+    header('Content-Type: application/xml');
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+    echo "<seen>\n";
+    while($line = mysqli_fetch_array($data)) {
+        echo "\t<id>" . $line["iid"] . "</id>\n";
+    }
+    echo "</seen>";
+    die();
+}
+
 
 /**
  * Adds a alias for a malformed city name
@@ -416,6 +478,104 @@ else if (isset($_REQUEST["delcountryalias"])) {
     $_SESSION["country_aliases"] = $country_aliases;
     
     header('Location: index.php?aliases=1');
+}
+
+
+
+/*
+ * Just like seek, but output a XML
+ * 
+ */
+else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
+    
+    $qcity = validate_str($_REQUEST["seek_city"], $mydb->db);
+    $max_depth = validate_int($_REQUEST["seek_depth"], $mydb->db);
+    $followed_ids = $_SESSION["followed"];
+    
+    $seed_ids = array();
+    $cities = $_SESSION["cities"];
+    
+    // Iteratively search for users from a given city
+    if (array_key_exists($qcity, $cities)) {
+        foreach($cities[$qcity] as $cityusers) {
+            $seed_ids[] = $cityusers["id"];
+        }
+            
+        // now the main part
+        $initial_seed_ids = $seed_ids;
+        $found_ids = $seed_ids;
+        $found_users = array();
+        $before = microtime(true);
+            
+        for ($depth = 0; $depth <= $max_depth; $depth ++) {
+            foreach ($seed_ids as $id) {
+                $offset = 0;
+                    
+                $following = json_decode($soundcloud->get('users/' . $id . '/followings', array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+                $next_href = $following["next_href"];
+
+                while (isset($next_href)) {
+                    foreach ($following["collection"] as $followed) {
+                        $city = strtolower($followed["city"]);
+                        if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
+                            if (!in_array($followed["id"], $found_ids)) {
+                                $found_ids[] = $followed["id"];
+                                $valid_user_data = array();
+                                $valid_user_data["id"] = $followed["id"];
+                                $valid_user_data["username"] = $followed["username"];
+                                $valid_user_data["permalink"] = $followed["permalink"];
+                                $valid_user_data["description"] = $followed["description"];
+                                $valid_user_data["tracks"] = $followed["track_count"];
+                                $valid_user_data["rank"] = 0;
+                                $found_users[$followed["id"]] = $valid_user_data;
+                            } else if (!in_array($followed["id"], $initial_seed_ids)) {
+                                $found_users[$followed["id"]]["rank"] = $found_users[$followed["id"]]["rank"] + 1;
+                            }
+                        }
+                    }
+                    $offset += $sc_page_limit;
+                    $following = json_decode($soundcloud->get($next_href, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+                    $next_href = $following["next_href"];
+                }
+                    
+                // finish the rest of the users
+                if ( !$next_href ) {
+                    foreach ($following["collection"] as $followed) {
+                        $city = strtolower($followed["city"]);
+                        if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
+                            if (!in_array($followed["id"], $found_ids)) {
+                                $found_ids[] = $followed["id"];
+                                $valid_user_data = array();
+                                $valid_user_data["id"] = $followed["id"];
+                                $valid_user_data["username"] = $followed["username"];
+                                $valid_user_data["permalink"] = $followed["permalink"];
+                                $valid_user_data["description"] = $followed["description"];
+                                $valid_user_data["tracks"] = $followed["track_count"];
+                                $valid_user_data["rank"] = 0;
+                                $found_users[$followed["id"]] = $valid_user_data;
+                            } else if (!in_array($followed["id"], $initial_seed_ids)) {
+                                $found_users[$followed["id"]]["rank"] = $found_users[$followed["id"]]["rank"] + 1;
+                            }
+                        }
+                    }
+                }
+            }
+                
+            // expand seed by the newly found users
+            foreach ($found_ids as $found_id) {
+                if (!in_array($found_id, $seed_ids)) {
+                    $seed_ids[] = $found_id;
+                }
+            }
+        }
+            
+        // show them
+        display_user_results_xml($found_users, microtime(true) - $before);
+        
+    } else {
+        //echo "No users from $city currently followed";
+    }
+    die();
 }
 
 /**
@@ -659,7 +819,7 @@ else if(isset($_REQUEST["city"])) {
  * 
  */
 else if(isset($_REQUEST["country"])) {
-    pagetop();
+    pagetop($dev_version);
     $qcountry = validate_str($_REQUEST["country"], $mydb->db);
     if(array_key_exists($qcountry, $_SESSION["countries"])) {
         $count = count($_SESSION["countries"][$qcountry]);
@@ -682,7 +842,7 @@ else if(isset($_REQUEST["country"])) {
  * 
  */
 else if(isset($_REQUEST["aliases"])&&($_REQUEST["aliases"] == 1)) {
-    pagetop();
+    pagetop($dev_version);
     $count_users = count($_SESSION["followed"]);
     echo "<b>Following $count_users users from these cities:</b><br/>";
 
@@ -749,7 +909,7 @@ else if (isset($_REQUEST["userstalk"]) && ($_REQUEST["userstalk"] == 1)) {
     $seen_ids = $_SESSION["seen"];
     
     // FILTER FORM
-    pagetop();
+    pagetop($dev_version);
     echo "<b>search for musicians from a city connected to a specific user:</b>";
     filterform_userstalk($quser, $qcity, $userlimit, $show_ign);
     $followed_users = array();
@@ -849,13 +1009,13 @@ else if (isset($_REQUEST["userstalk"]) && ($_REQUEST["userstalk"] == 1)) {
             // show results
             echo "<b>$quser is following ".count($followed_users)." users from $qcity: </b></br></br>";
             usort($followed_users, 'compare_by_tracks');
-            display_user_results($followed_users, $ignored_ids);
+            display_user_results($followed_users);
             echo "<br/>found in " .($followed_after - $followed_before). " sec.";
             
             // show more results
             echo "<br/><br/><b>$quser is followed by ".count($followed_by_users)." users from $qcity: </b></br></br>";
             usort($followed_by_users, 'compare_by_tracks');
-            display_user_results($followed_by_users, $ignored_ids);
+            display_user_results($followed_by_users);
             echo "<br/>found in " .($following_after - $following_before). " sec.";
             
             echo "</body></html>";
@@ -914,13 +1074,7 @@ else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
     $ignored_ids = $_SESSION["ignored"];
     
     // FILTER FORM
-    pagetop();
-    echo "<i>This searches for all musicians that are followed by you and come from the city you specify bellow.<br>";
-    echo "The depth argument is a number starting from 0.<br>";
-    echo "Depth 0 searches for all users from the given city that are followed by you, and all the users from the city followed by these users.</br>";
-    echo 'Depth 1 adds the users found in depth 0 to the initial groups of users, ad searches all of them for further users from the given city.<br/>';
-    echo "This can get pretty big pretty soon, and takes cca 1 minute in depth 1, so use with care...</i><br/><br/>";
-    echo "<b>search for all musicians from a city:</b>";
+    pagetop($dev_version);
     filterform_citysearch($qcity, $max_depth, $show_ign);
     echo "</div></body></html>";
     
@@ -1008,7 +1162,7 @@ else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
             
             // show them
             usort($found_users, 'gnd_rank1');
-            display_user_results($found_users, $ignored_ids);
+            display_user_results($found_users);
                 
             $count_users = count($found_users);
             $after = microtime(true);
@@ -1029,7 +1183,7 @@ else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
  */
 else {
     // AK NIC TAK POTOM DAJ SEARCH BOX
-    pagetop();
+    pagetop($dev_version);
     $count_users = count($_SESSION["followed"]);
     echo "<b>Following $count_users users from these cities:</b><br/>";
 
@@ -1045,6 +1199,12 @@ else {
         echo "<a href=\"index.php?country=".urlencode($country)."\">$country ($countcountryusers)</a> ";
     }
     echo "<br/><br/>";
+    echo "<table><tr id=\"seekxml\"><td>----> </td><td onclick=\"seekxml('trencin',0)\">seekxml</td></tr></table>";
+    
+    echo "<span id=\"switch_seen\" onclick=\"switch_seen()\">hide seen</span>\n";
+    echo "\n\n<table id=\"results\" style=\"border: 0px;\">\n";
+    echo "<thead><tr><th>hide</th><th>name</th><th>tracks</th><th>rank</th><th>followers</th><th>description</th></tr></thead>\n";
+    echo "<tbody id=\"results_body\"></tbody></table>";
 }
 
 ?>
