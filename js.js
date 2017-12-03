@@ -1,4 +1,5 @@
-var seen;
+var seen;   
+var cities; // the php $_SESSION["cities"] array created at first login
 var found_users;
 var show_seen = false;
 
@@ -18,22 +19,33 @@ if(window.attachEvent) {
     }
 }
 
+// verify if numeric
+function isNumeric(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
 // events to happen on page load
 function pageload() {
     
     // load seen artists
-    loadxml();
+    load_seen();
+    
+    // load cities
+    load_cities();
     
     // display correct text on button
     if (show_seen) {
-        document.getElementById("switch_seen").textContent = "hide seen";
+        document.getElementById("switch_seen").value = "hide seen";
     } else {
-        document.getElementById("switch_seen").textContent = "show seen";
+        document.getElementById("switch_seen").value = "show seen";
     }
+    
+    // hide results div before we search
+    document.getElementById("results").style.display = "none";
 }
 
 // load seen from XML
-function loadxml() {
+function load_seen() {
     
     // clean seen array
     seen = new Array();
@@ -55,8 +67,31 @@ function loadxml() {
 }
 
 
+// load cities from XML
+function load_cities() {
+    
+    // clean seen array
+    cities = new Array();
+    
+    if (window.XMLHttpRequest) {
+       xhttp = new XMLHttpRequest();
+    } else {    // IE 5/6
+       xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+
+    xhttp.open("GET", "index.php?citiesxml=1", false);
+    xhttp.send(null);
+    var xmlDoc = xhttp.responseXML;
+
+    var cities_loaded = xmlDoc.getElementsByTagName("city");
+    for (var i = 0; i < cities_loaded.length; i++) {
+         cities.push(cities_loaded[i].childNodes[0].textContent);
+    }
+}
+
+
 // load citysearch (seek) from XML
-function seekxml(city, depth) {
+function seekxml() {
     
     // prepare a clean tbody
     var tbody = document.getElementById("results_body");
@@ -69,23 +104,54 @@ function seekxml(city, depth) {
     } else {    // IE 5/6
        xhttp = new ActiveXObject("Microsoft.XMLHTTP");
     }
-
-    // setup params
-    var params = "seekxml=1";
-    params += "&" + "seek_city" + "=" + encodeURIComponent(city);
-    params += "&" + "seek_depth" + "=" + encodeURIComponent(depth);
     
-    // initiate connection
-    xhttp.open("POST", "index.php", false);
-    xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-    xhttp.send(params);
+    // check for params
+    var city = document.getElementById("seek_city").value;
+    var depth = document.getElementById("seek_depth").value;
     
-    // process response
-    var xmlDoc = xhttp.responseXML;
-    process_xml(xmlDoc);
+    // verify if params ok
+    verify = false;
+    if (city) {
+        if (cities.indexOf(city) != -1) {
+            if (depth) {
+                if (isNumeric(depth)) {
+                    if (depth < 5) {
+                        verify = true;
+                    } else {
+                        alert("Depth " + depth + " too big");
+                    }
+                } else {
+                    alert("Depth not a number");
+                }
+            } else {
+                alert("Depth empty");
+            }
+        } else {
+            alert("You follow no users from " + city);
+        }
+    } else {
+        alert("City empty");
+    }
     
-    // show results
-    show();
+    // if verify, run
+    if (verify) {
+        // setup params
+        var params = "seekxml=1";
+        params += "&" + "seek_city" + "=" + encodeURIComponent(city);
+        params += "&" + "seek_depth" + "=" + encodeURIComponent(depth);
+        
+        // initiate connection
+        xhttp.open("POST", "index.php", false);
+        xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhttp.send(params);
+        
+        // process response
+        var xmlDoc = xhttp.responseXML;
+        process_xml(xmlDoc);
+        
+        // show results
+        show();
+    }
 }
 
 // load results into a array
@@ -119,6 +185,9 @@ function show() {
     while (tbody.firstChild) {
         tbody.removeChild(tbody.firstChild);
     }
+    
+    // show results div 
+    document.getElementById("results").style.display = "initial";
     
     // sort results
     
@@ -189,7 +258,29 @@ function hide(id) {
     xhttp.send("seen=" + id);
     
     // reload seen
-    loadxml();
+    load_seen();
+    
+    // show results
+    show();
+}
+
+
+// post unsee
+function unhide(id) {
+    
+    if (window.XMLHttpRequest) {
+       xhttp = new XMLHttpRequest();
+    } else {
+       xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+
+    // post seen id
+    xhttp.open("POST", "index.php", false);
+    xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    xhttp.send("unsee=" + id);
+    
+    // reload seen
+    load_seen();
     
     // show results
     show();
@@ -199,11 +290,11 @@ function hide(id) {
 // switch show_seen state
 function switch_seen() {
     if (show_seen) {
-        document.getElementById("switch_seen").textContent = "show seen";
+        document.getElementById("switch_seen").value = "show seen";
         show_seen = false;
         show();
     } else {
-        document.getElementById("switch_seen").textContent = "hide seen";
+        document.getElementById("switch_seen").value = "hide seen";
         show_seen = true;
         show();
     }

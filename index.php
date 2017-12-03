@@ -369,6 +369,27 @@ if (isset($_REQUEST["seen"]) && ($_REQUEST["seen"] != 0)) {
 
 
 /**
+ * Removes a user from the seen list
+ * 
+ */
+if (isset($_REQUEST["unsee"]) && ($_REQUEST["unsee"] != 0)) {
+    $iid = validate_int($_REQUEST["unsee"], $mydb->db);
+    $mydb->delSeen($_SESSION["user_data"]["id"], $iid);
+    
+    // Preload seen ids
+    $seen_ids = array();
+    $data = $mydb->getSeen($_SESSION["user_data"]["id"]);
+
+    while($line = mysqli_fetch_array($data)) {
+        $seen_ids[] = $line["iid"];
+    }
+    $_SESSION["seen"] = $seen_ids;
+    
+    header('Location: index.php');
+}
+
+
+/**
  * Shows seen users as a XML
  * 
  */
@@ -386,6 +407,29 @@ if (isset($_REQUEST["seen"]) && ($_REQUEST["seen"] != 0)) {
         echo "\t<id>" . $line["iid"] . "</id>\n";
     }
     echo "</seen>";
+    die();
+}
+
+
+/**
+ * Shows cities from $_SESSION as XML
+ * 
+ */
+ if (isset($_REQUEST["citiesxml"]) && ($_REQUEST["citiesxml"] != 0)) {
+    
+    // Output XML
+    header('Content-Type: application/xml');
+    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+    echo "<cities>\n";
+    
+    foreach($_SESSION["cities"] as $city => $foo) {
+        // avoid showing empty city
+        if (strcmp($city, "") != 0) {
+            echo "\t<city>" . str_replace("&", "&#038;", $city) . "</city>\n";
+        }
+    }
+    
+    echo "</cities>";
     die();
 }
 
@@ -488,8 +532,8 @@ else if (isset($_REQUEST["delcountryalias"])) {
  */
 else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
     
-    $qcity = validate_str($_REQUEST["seek_city"], $mydb->db);
-    $max_depth = validate_int($_REQUEST["seek_depth"], $mydb->db);
+    $qcity = validate_str($_POST["seek_city"], $mydb->db);
+    $max_depth = validate_int($_POST["seek_depth"], $mydb->db);
     $followed_ids = $_SESSION["followed"];
     
     $seed_ids = array();
@@ -1199,12 +1243,17 @@ else {
         echo "<a href=\"index.php?country=".urlencode($country)."\">$country ($countcountryusers)</a> ";
     }
     echo "<br/><br/>";
-    echo "<table><tr id=\"seekxml\"><td>----> </td><td onclick=\"seekxml('trencin',0)\">seekxml</td></tr></table>";
     
-    echo "<span id=\"switch_seen\" onclick=\"switch_seen()\">hide seen</span>\n";
-    echo "\n\n<table id=\"results\" style=\"border: 0px;\">\n";
-    echo "<thead><tr><th>hide</th><th>name</th><th>tracks</th><th>rank</th><th>followers</th><th>description</th></tr></thead>\n";
+    echo "city: <input type=\"text\" id=\"seek_city\" value=\"\" /> ";
+    echo "depth: <input type=\"text\" id=\"seek_depth\" value=\"\" /> ";
+    echo "<input type=\"submit\" onclick=\"seekxml('trencin',0)\" value=\"search\" /> ";
+    echo "<input type=\"submit\" id=\"switch_seen\" onclick=\"switch_seen()\" value=\"show hidden\" />";
+    
+    echo "<div id=\"results\">";
+    echo "\n\n<table style=\"border: 0px;\">\n";
+    echo "<thead><tr><th>hide</th><th>name</th><th>tracks&nbsp;&nbsp;&nbsp;</th><th>rank&nbsp;&nbsp;&nbsp;</th><th>followers&nbsp;&nbsp;&nbsp;</th><th>description</th></tr></thead>\n";
     echo "<tbody id=\"results_body\"></tbody></table>";
+    echo "</div>";
 }
 
 ?>
