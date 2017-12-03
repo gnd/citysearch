@@ -1244,14 +1244,23 @@ else {
     }
     echo "<br/><br/>";
     
+    
+    // new city search 
     echo "city: <input type=\"text\" id=\"seek_city\" value=\"\" /> ";
     echo "depth: <input type=\"text\" id=\"seek_depth\" value=\"\" /> ";
     echo "<input type=\"submit\" onclick=\"seekxml('trencin',0)\" value=\"search\" /> ";
     echo "<input type=\"submit\" id=\"switch_seen\" onclick=\"switch_seen()\" value=\"show hidden\" />";
+    echo " <span id=\"search_status\"/></span>";
     
     echo "<div id=\"results\">";
     echo "\n\n<table style=\"border: 0px;\">\n";
-    echo "<thead><tr><th>hide</th><th>name</th><th>tracks&nbsp;&nbsp;&nbsp;</th><th>rank&nbsp;&nbsp;&nbsp;</th><th>followers&nbsp;&nbsp;&nbsp;</th><th>description</th></tr></thead>\n";
+    echo "<thead><tr>";
+    echo "<th>hide</th>";
+    echo "<th id=\"th_name\" onclick=\"change_sorting('name')\" >name&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_tracks\" onclick=\"change_sorting('tracks')\">tracks&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_rank\" onclick=\"change_sorting('rank')\">rank&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_followers\" onclick=\"change_sorting('followers')\">followers&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th>description</th></tr></thead>\n";
     echo "<tbody id=\"results_body\"></tbody></table>";
     echo "</div>";
 }

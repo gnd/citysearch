@@ -1,6 +1,8 @@
 var seen;   
 var cities; // the php $_SESSION["cities"] array created at first login
 var found_users;
+
+var how = "rank_d"
 var show_seen = false;
 
 // autoload seen ids on page load
@@ -40,9 +42,33 @@ function pageload() {
         document.getElementById("switch_seen").value = "show seen";
     }
     
+    // display correct sorting indicator
+    indicate_sorting();
+    
     // hide results div before we search
     document.getElementById("results").style.display = "none";
 }
+
+function indicate_sorting() {
+    var arr = how.split("_");
+    var what = arr[0];
+    var dir = arr[1];
+    var suffix = "&nbsp;&nbsp;&nbsp;";
+    
+    // make all sorting indicators default
+    document.getElementById("th_name").innerHTML = "name" + suffix;
+    document.getElementById("th_tracks").innerHTML = "tracks" + suffix;
+    document.getElementById("th_rank").innerHTML = "rank" + suffix;
+    document.getElementById("th_followers").innerHTML = "followers" + suffix;
+    
+    // adjust indicator according to current how
+    if (dir == "i") {
+        document.getElementById("th_" + what).innerHTML = "▲ " + what + suffix;
+    } else {
+        document.getElementById("th_" + what).innerHTML = "▼ " + what + suffix;
+    }
+}
+
 
 // load seen from XML
 function load_seen() {
@@ -92,6 +118,10 @@ function load_cities() {
 
 // load citysearch (seek) from XML
 function seekxml() {
+    
+    // indicate search status
+    document.getElementById("search_status").innerHTML = "searching ..";
+    document.getElementById("search_status").style.backgroundColor = "#ed6359";
     
     // prepare a clean tbody
     var tbody = document.getElementById("results_body");
@@ -150,7 +180,11 @@ function seekxml() {
         process_xml(xmlDoc);
         
         // show results
-        show();
+        show(how);
+        
+        // indicate search status
+        document.getElementById("search_status").innerHTML = "done !";
+        document.getElementById("search_status").style.backgroundColor = "#60fd6b";
     }
 }
 
@@ -176,9 +210,71 @@ function process_xml(xmlDoc) {
     }
 }
 
+function change_sorting(what) {
+    if (how == what + "_i") {
+        how = what + "_d";
+    } else {
+        how = what + "_i";
+    }
+    
+    // indicate sorting
+    indicate_sorting();
+    
+    // show
+    show(how);
+}
+
+function sort_results(results, how) {
+    
+    if (how == "name_i") {
+        results.sort(function(a,b) {
+            if(a.name < b.name) return -1;
+            if(a.name > b.name) return 1;
+            return 0;
+        });
+    }
+    if (how == "name_d") {
+        results.sort(function(b,a) {
+            if(a.name < b.name) return -1;
+            if(a.name > b.name) return 1;
+            return 0;
+        });
+    }
+    if (how == "tracks_i") {
+        results.sort(function(a,b) {
+            return a.tracks - b.tracks;
+        });
+    }
+    if (how == "tracks_d") {
+        results.sort(function(b,a) {
+            return a.tracks - b.tracks;
+        });
+    }
+    if (how == "followers_i") {
+        results.sort(function(a,b) {
+            return a.followers - b.followers;
+        });
+    }
+    if (how == "followers_d") {
+        results.sort(function(b,a) {
+            return a.followers - b.followers;
+        });
+    }
+    if (how == "rank_i") {
+        results.sort(function(a,b) {
+            return a.rank - b.rank;
+        });
+    }
+    if (how == "rank_d") {
+        results.sort(function(b,a) {
+            return a.rank - b.rank;
+        });
+    }
+}
+
 
 // show found_users on the page
-function show() {
+function show(how) {
     
     // prepare a clean tbody
     var tbody = document.getElementById("results_body");
@@ -190,6 +286,7 @@ function show() {
     document.getElementById("results").style.display = "initial";
     
     // sort results
+    sort_results(found_users, how);
     
     // populate with results and honour show_seen
     for (var i = 0; i < found_users.length; i++) {
@@ -261,7 +358,7 @@ function hide(id) {
     load_seen();
     
     // show results
-    show();
+    show(how);
 }
 
 
@@ -283,7 +380,7 @@ function unhide(id) {
     load_seen();
     
     // show results
-    show();
+    show(how);
 }
 
 
@@ -292,10 +389,10 @@ function switch_seen() {
     if (show_seen) {
         document.getElementById("switch_seen").value = "show seen";
         show_seen = false;
-        show();
+        show(how);
     } else {
         document.getElementById("switch_seen").value = "hide seen";
         show_seen = true;
-        show();
+        show(how);
     }
 }
