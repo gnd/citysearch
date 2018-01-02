@@ -1104,117 +1104,33 @@ else if (isset($_REQUEST["userstalk"]) && ($_REQUEST["userstalk"] == 1)) {
  */
 else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
     
-    $qcity = validate_str($_POST["seek_city"], $mydb->db);
-    $max_depth = validate_int($_POST["seek_depth"], $mydb->db);
-    $show_ign = false;
-    if (isset($_POST["ignoreign"])) {
-        $show_ign = validate_str($_POST["ignoreign"], $mydb->db);
-        if($show_ign == "on") {
-            $show_ign = true;
-        }
-    }
-    $qsearch = validate_int($_POST["search"], $mydb->db);
     $followed_ids = $_SESSION["followed"];
     $ignored_ids = $_SESSION["ignored"];
     
     // FILTER FORM
     pagetop($dev_version);
-    filterform_citysearch($qcity, $max_depth, $show_ign);
-    echo "</div></body></html>";
     
-    // Iteratively search for users from a given city
-    $seed_ids = array();
-    if($qsearch == 1) {
-        $cities = $_SESSION["cities"];
-        if(array_key_exists($qcity, $cities)) {
-            echo "<b>Showing all users from $qcity followed by:</br></b>";
-            foreach($cities[$qcity] as $cityusers) {
-                $name = $cityusers["username"];
-                $link = $cityusers["permalink"];
-                echo "<span class=\"artist_name\"><a class=\"artist\" target=\"_blank\" href=\"http://soundcloud.com/" . $link . "\">" . $name . "</a></span> ";
-                $seed_ids[] = $cityusers["id"];
-            }
-            echo "<br/><br/>";
-            
-            // now the main part
-            $initial_seed_ids = $seed_ids;
-            $found_ids = $seed_ids;
-            $found_users = array();
-            $before = microtime(true);
-            
-            for ($depth = 0; $depth <= $max_depth; $depth ++) {
-                foreach ($seed_ids as $id) {
-                    $offset = 0;
-                    
-                    $following = json_decode($soundcloud->get('users/' . $id . '/followings', array('limit' => $sc_page_limit, 'offset' => $offset)), true);
-                    $next_href = $following["next_href"];
-
-                    while (isset($next_href)) {
-                        foreach ($following["collection"] as $followed) {
-                            $city = strtolower($followed["city"]);
-                            if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) && (!in_array($followed["id"], $ignored_ids)) ) {
-                                if (!in_array($followed["id"], $found_ids)) {
-                                    $found_ids[] = $followed["id"];
-                                    $valid_user_data = array();
-                                    $valid_user_data["id"] = $followed["id"];
-                                    $valid_user_data["username"] = $followed["username"];
-                                    $valid_user_data["permalink"] = $followed["permalink"];
-                                    $valid_user_data["description"] = $followed["description"];
-                                    $valid_user_data["tracks"] = $followed["track_count"];
-                                    $valid_user_data["rank"] = 0;
-                                    $found_users[$followed["id"]] = $valid_user_data;
-                                } else if (!in_array($followed["id"], $initial_seed_ids)) {
-                                    $found_users[$followed["id"]]["rank"] = $found_users[$followed["id"]]["rank"] + 1;
-                                }
-                            }
-                        }
-                        $offset += $sc_page_limit;
-                        $following = json_decode($soundcloud->get($next_href, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
-                        $next_href = $following["next_href"];
-                    }
-                    
-                    // finish the rest of the users
-                    if ( !$next_href ) {
-                        foreach ($following["collection"] as $followed) {
-                            $city = strtolower($followed["city"]);
-                            if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) && (!in_array($followed["id"], $ignored_ids)) ) {
-                                if (!in_array($followed["id"], $found_ids)) {
-                                    $found_ids[] = $followed["id"];
-                                    $valid_user_data = array();
-                                    $valid_user_data["id"] = $followed["id"];
-                                    $valid_user_data["username"] = $followed["username"];
-                                    $valid_user_data["permalink"] = $followed["permalink"];
-                                    $valid_user_data["description"] = $followed["description"];
-                                    $valid_user_data["tracks"] = $followed["track_count"];
-                                    $valid_user_data["rank"] = 0;
-                                    $found_users[$followed["id"]] = $valid_user_data;
-                                } else if (!in_array($followed["id"], $initial_seed_ids)) {
-                                    $found_users[$followed["id"]]["rank"] = $found_users[$followed["id"]]["rank"] + 1;
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // expand seed by the newly found users
-                foreach ($found_ids as $found_id) {
-                    if (!in_array($found_id, $seed_ids)) {
-                        $seed_ids[] = $found_id;
-                    }
-                }
-            }
-            
-            // show them
-            usort($found_users, 'gnd_rank1');
-            display_user_results($found_users);
-                
-            $count_users = count($found_users);
-            $after = microtime(true);
-            echo "Shown $count_users users in $qcity that have tracks. Executed in: " .($after - $before). " sec. Depth = ".($depth-1)." <br/><br/><br/>";
-        } else {
-            echo "No users from $city currently followed";
-        }
-    }
+    // new city search 
+    echo "city: <input type=\"text\" id=\"seek_city\" value=\"\" /> ";
+    echo "depth: <input type=\"text\" id=\"seek_depth\" value=\"\" /> ";
+    echo "<input type=\"submit\" onclick=\"seekxml('trencin',0)\" value=\"search\" /> ";
+    echo "<input type=\"submit\" id=\"switch_seen\" onclick=\"switch_seen()\" value=\"show hidden\" />";
+    echo " <span id=\"search_status\"/></span>";
+    
+    echo "<div id=\"results\">";
+    echo "\n\n<table style=\"border: 0px;\">\n";
+    echo "<thead><tr>";
+    echo "<th>hide</th>";
+    echo "<th id=\"th_name\" onclick=\"change_sorting('name')\" >name&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_tracks\" onclick=\"change_sorting('tracks')\">tracks&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_rank\" onclick=\"change_sorting('rank')\">rank&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_followers\" onclick=\"change_sorting('followers')\">followers&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th>description</th></tr></thead>\n";
+    echo "<tbody id=\"results_body\"></tbody></table>";
+    echo "</div>";
+    
+    //
+    echo "</div></body></html>";
 } 
 
 
@@ -1244,25 +1160,6 @@ else {
     }
     echo "<br/><br/>";
     
-    
-    // new city search 
-    echo "city: <input type=\"text\" id=\"seek_city\" value=\"\" /> ";
-    echo "depth: <input type=\"text\" id=\"seek_depth\" value=\"\" /> ";
-    echo "<input type=\"submit\" onclick=\"seekxml('trencin',0)\" value=\"search\" /> ";
-    echo "<input type=\"submit\" id=\"switch_seen\" onclick=\"switch_seen()\" value=\"show hidden\" />";
-    echo " <span id=\"search_status\"/></span>";
-    
-    echo "<div id=\"results\">";
-    echo "\n\n<table style=\"border: 0px;\">\n";
-    echo "<thead><tr>";
-    echo "<th>hide</th>";
-    echo "<th id=\"th_name\" onclick=\"change_sorting('name')\" >name&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_tracks\" onclick=\"change_sorting('tracks')\">tracks&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_rank\" onclick=\"change_sorting('rank')\">rank&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_followers\" onclick=\"change_sorting('followers')\">followers&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th>description</th></tr></thead>\n";
-    echo "<tbody id=\"results_body\"></tbody></table>";
-    echo "</div>";
 }
 
 ?>
