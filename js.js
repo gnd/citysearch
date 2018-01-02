@@ -2,8 +2,11 @@ var seen;
 var cities; // the php $_SESSION["cities"] array created at first login
 var found_users;
 
+var DESC_SIZE = 220;
 var how = "rank_d"
 var show_seen = false;
+var max_rank = 0;
+var max_degree = 0;
 
 // autoload seen ids on page load
 if(window.attachEvent) {
@@ -49,6 +52,16 @@ function pageload() {
     document.getElementById("results").style.display = "none";
 }
 
+
+function get_time_diff(datetime)
+{
+    var datetime = new Date( datetime ).getTime();
+    var now = new Date().getTime();
+    var milisec_diff = now - datetime;    
+    var days = Math.floor(milisec_diff / 1000 / 60 / (60 * 24));
+    return days;
+}
+
 function indicate_sorting() {
     var arr = how.split("_");
     var what = arr[0];
@@ -60,12 +73,21 @@ function indicate_sorting() {
     document.getElementById("th_tracks").innerHTML = "tracks" + suffix;
     document.getElementById("th_rank").innerHTML = "rank" + suffix;
     document.getElementById("th_followers").innerHTML = "followers" + suffix;
+    document.getElementById("th_lasttrack").innerHTML = "last track (days ago)" + suffix;
     
     // adjust indicator according to current how
     if (dir == "i") {
-        document.getElementById("th_" + what).innerHTML = "▲ " + what + suffix;
+        if (what =="lasttrack") {
+            document.getElementById("th_" + what).innerHTML = "▲ " + "last track (days ago)" + suffix;
+        } else {
+            document.getElementById("th_" + what).innerHTML = "▲ " + what + suffix;
+        }
     } else {
-        document.getElementById("th_" + what).innerHTML = "▼ " + what + suffix;
+        if (what =="lasttrack") {
+            document.getElementById("th_" + what).innerHTML = "▼ " + "last track (days ago)" + suffix;
+        } else {
+            document.getElementById("th_" + what).innerHTML = "▼ " + what + suffix;
+        }
     }
 }
 
@@ -188,6 +210,37 @@ function seekxml() {
     }
 }
 
+
+// compute user rank
+function compute_rank() {
+    // rank is a function of the above inputs
+    // more tracks = better
+    // more followers = better
+    // more degree = better
+    // if a track sooner then 360 days ago, higher, and sooner = better, if not falls down
+    
+    // populate with results and honour show_seen
+    for (var i = 0; i < found_users.length; i++) {
+        
+        // normalize first
+        var tmp_rank = (found_users["tracks"] * found_users{'followers']) / max_rank;
+        
+        // after normalisation consider degree
+        tmp_rank *= (found_users["degree"] + 1) / (max_degree + 1);
+        
+        // if last_track sooner than 360 days ago
+        if (found_users["last_track"] <= 360) {
+            tmp_rank -= (found_users["last_track"]/360);
+        } else {
+            tmp_rank -= (found_users["last_track"]/360) - 1;
+        }
+    
+        found_users["rank"] = tmp_rank;
+    }
+    
+}
+
+
 // load results into a array
 function process_xml(xmlDoc) {
     
@@ -203,8 +256,21 @@ function process_xml(xmlDoc) {
         user["link"] = users[i].getElementsByTagName("link")[0].textContent;
         user["tracks"] = users[i].getElementsByTagName("tracks")[0].textContent;
         user["followers"] = users[i].getElementsByTagName("followers")[0].textContent;
+        user["last_track"] = get_time_diff(users[i].getElementsByTagName("last_track")[0].textContent);
         user["description"] = users[i].getElementsByTagName("description")[0].textContent;
-        user["rank"] = users[i].getElementsByTagName("rank")[0].textContent;
+        user["degree"] = users[i].getElementsByTagName("degree")[0].textContent;
+        user["rank"] = 0;
+        
+        // find maximum degree
+        if (users[i].getElementsByTagName("degree")[0].textContent > max_degree) {
+            max_degree = users[i].getElementsByTagName("degree")[0].textContent;
+        }
+        
+        // set initial rank and find maximum
+        var temp_rank = users[i].getElementsByTagName("tracks")[0].textContent * users[i].getElementsByTagName("followers")[0].textContent;
+        if (temp_rank > max_rank) {
+            max_rank = temp_rank;
+        }
         
         found_users.push(user); 
     }
@@ -260,6 +326,16 @@ function sort_results(results, how) {
             return a.followers - b.followers;
         });
     }
+    if (how == "lasttrack_i") {
+        results.sort(function(a,b) {
+            return a.last_track - b.last_track;
+        });
+    }
+    if (how == "lasttrack_d") {
+        results.sort(function(b,a) {
+            return a.last_track - b.last_track;
+        });
+    }
     if (how == "rank_i") {
         results.sort(function(a,b) {
             return a.rank - b.rank;
@@ -312,17 +388,12 @@ function show(how) {
             td.setAttribute("class", "artist_name");
             td.innerHTML = "<a class=\"artist\" target=\"_blank\" href=\"" + found_users[i]["link"] + "\">" + found_users[i]["name"] + "</a>";
             row.appendChild(td);
-             
-            var td = document.createElement('td');
-            td.setAttribute("class", "artist_info");
-            td.innerHTML = found_users[i]["tracks"];
-            row.appendChild(td);
-             
+            
             var td = document.createElement('td');
             td.setAttribute("class", "artist_info");
             td.innerHTML = found_users[i]["rank"];
             row.appendChild(td);
-             
+            
             var td = document.createElement('td');
             td.setAttribute("class", "artist_followers");
             td.innerHTML = found_users[i]["followers"];
@@ -330,8 +401,18 @@ function show(how) {
              
             var td = document.createElement('td');
             td.setAttribute("class", "artist_info");
+            td.innerHTML = found_users[i]["tracks"];
+            row.appendChild(td);
+            
+            var td = document.createElement('td');
+            td.setAttribute("class", "last_track");
+            td.innerHTML = found_users[i]["last_track"];
+            row.appendChild(td);
+             
+            var td = document.createElement('td');
+            td.setAttribute("class", "artist_info");
             td.setAttribute("title", found_users[i]["description"]);
-            td.innerHTML = found_users[i]["description"].substring(0, 250);
+            td.innerHTML = found_users[i]["description"].substring(0, DESC_SIZE);
             row.appendChild(td);
 
             // append row to results
@@ -356,6 +437,9 @@ function hide(id) {
     
     // reload seen
     load_seen();
+    
+    // determine rank
+    compute_rank();
     
     // show results
     show(how);

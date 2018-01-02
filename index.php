@@ -255,8 +255,9 @@ function display_user_results_xml($users, $duration) {
             $name = $user["username"];
             $tracks = $user["tracks"];
             $description = $user["description"];
-            $followers = $user["count_followers"];
-            $rank = $user["rank"];
+            $followers = $user["followers_count"];
+            $last_track = $user["last_track_time"];
+            $degree = $user["degree"];
             
             echo "<user>\n";
                 echo "\t<id>".$id."</id>\n";
@@ -264,8 +265,9 @@ function display_user_results_xml($users, $duration) {
                 echo "\t<link>".$link."</link>\n";
                 echo "\t<tracks>".$tracks."</tracks>\n";
                 echo "\t<followers>".$followers."</followers>\n";
+                echo "\t<last_track>".$last_track."</last_track>\n";
                 echo "\t<description>\n\t\t".str_replace("&", "&#038;", strip_tags(addslashes($description)))."\n\t</description>\n";
-                echo "\t<rank>".$rank."</rank>\n";
+                echo "\t<degree>".$degree."</degree>\n";
             echo "</user>\n";
         }
     }
@@ -532,8 +534,8 @@ else if (isset($_REQUEST["delcountryalias"])) {
  */
 else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
     
-    $qcity = validate_str($_POST["seek_city"], $mydb->db);
-    $max_depth = validate_int($_POST["seek_depth"], $mydb->db);
+    $qcity = validate_str($_REQUEST["seek_city"], $mydb->db);
+    $max_depth = validate_int($_REQUEST["seek_depth"], $mydb->db);
     $followed_ids = $_SESSION["followed"];
     
     $seed_ids = array();
@@ -562,18 +564,25 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                     foreach ($following["collection"] as $followed) {
                         $city = strtolower($followed["city"]);
                         if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
+                            
+                            // get info on last published track
+                            $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
+                            $last_track_time = $tracks[0]["created_at"];
+                            
                             if (!in_array($followed["id"], $found_ids)) {
                                 $found_ids[] = $followed["id"];
                                 $valid_user_data = array();
                                 $valid_user_data["id"] = $followed["id"];
                                 $valid_user_data["username"] = $followed["username"];
-                                $valid_user_data["permalink"] = $followed["permalink"];
+                                $valid_user_data["permalink"] = $followed["permalink_url"];
                                 $valid_user_data["description"] = $followed["description"];
                                 $valid_user_data["tracks"] = $followed["track_count"];
-                                $valid_user_data["rank"] = 0;
+                                $valid_user_data["followers_count"] = $followed["followers_count"];
+                                $valid_user_data["last_track_time"] = $last_track_time;
+                                $valid_user_data["degree"] = 0;
                                 $found_users[$followed["id"]] = $valid_user_data;
                             } else if (!in_array($followed["id"], $initial_seed_ids)) {
-                                $found_users[$followed["id"]]["rank"] = $found_users[$followed["id"]]["rank"] + 1;
+                                $found_users[$followed["id"]]["degree"] = $found_users[$followed["id"]]["degree"] + 1;
                             }
                         }
                     }
@@ -587,18 +596,25 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                     foreach ($following["collection"] as $followed) {
                         $city = strtolower($followed["city"]);
                         if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
+                            
+                            // get info on last published track
+                            $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
+                            $last_track_time = $tracks[0]["created_at"];
+                            
                             if (!in_array($followed["id"], $found_ids)) {
                                 $found_ids[] = $followed["id"];
                                 $valid_user_data = array();
                                 $valid_user_data["id"] = $followed["id"];
                                 $valid_user_data["username"] = $followed["username"];
-                                $valid_user_data["permalink"] = $followed["permalink"];
+                                $valid_user_data["permalink"] = $followed["permalink_url"];
                                 $valid_user_data["description"] = $followed["description"];
                                 $valid_user_data["tracks"] = $followed["track_count"];
-                                $valid_user_data["rank"] = 0;
+                                $valid_user_data["followers_count"] = $followed["followers_count"];
+                                $valid_user_data["last_track_time"] = $last_track_time;
+                                $valid_user_data["degree"] = 0;
                                 $found_users[$followed["id"]] = $valid_user_data;
                             } else if (!in_array($followed["id"], $initial_seed_ids)) {
-                                $found_users[$followed["id"]]["rank"] = $found_users[$followed["id"]]["rank"] + 1;
+                                $found_users[$followed["id"]]["degree"] = $found_users[$followed["id"]]["degree"] + 1;
                             }
                         }
                     }
@@ -666,6 +682,7 @@ if (isset($_GET["code"])) {
                                        'name' =>$me['full_name'],
                                        'avatar' =>$me['avatar_url'],
                                        'followed_count' =>$me['followings_count']);
+       
         // Preload aliased cities 
         $city_aliases = array();
         $data = $mydb->getCityAliases($_SESSION["user_data"]["id"]);
@@ -1125,6 +1142,7 @@ else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
     echo "<th id=\"th_tracks\" onclick=\"change_sorting('tracks')\">tracks&nbsp;&nbsp;&nbsp;</th>";
     echo "<th id=\"th_rank\" onclick=\"change_sorting('rank')\">rank&nbsp;&nbsp;&nbsp;</th>";
     echo "<th id=\"th_followers\" onclick=\"change_sorting('followers')\">followers&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_lasttrack\" onclick=\"change_sorting('lasttrack')\">last track (days ago)&nbsp;&nbsp;&nbsp;</th>";
     echo "<th>description</th></tr></thead>\n";
     echo "<tbody id=\"results_body\"></tbody></table>";
     echo "</div>";
