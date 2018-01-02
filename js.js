@@ -201,12 +201,17 @@ function seekxml() {
         var xmlDoc = xhttp.responseXML;
         process_xml(xmlDoc);
         
+        // determine rank
+        compute_rank();
+        
         // show results
         show(how);
         
         // indicate search status
         document.getElementById("search_status").innerHTML = "done !";
         document.getElementById("search_status").style.backgroundColor = "#60fd6b";
+        
+        alert("max_rank: " + max_rank + " max_degree: " + max_degree);
     }
 }
 
@@ -223,21 +228,21 @@ function compute_rank() {
     for (var i = 0; i < found_users.length; i++) {
         
         // normalize first
-        var tmp_rank = (found_users["tracks"] * found_users{'followers']) / max_rank;
+        var tmp_rank = (found_users[i]["tracks"] * found_users[i]['followers']) / max_rank;
         
         // after normalisation consider degree
-        tmp_rank *= (found_users["degree"] + 1) / (max_degree + 1);
+        tmp_rank = tmp_rank * ((found_users[i]["degree"] + 1) / (max_degree + 1));
         
         // if last_track sooner than 360 days ago
-        if (found_users["last_track"] <= 360) {
-            tmp_rank -= (found_users["last_track"]/360);
+        if (found_users[i]["last_track"] <= 360) {
+            tmp_rank = tmp_rank - found_users[i]["last_track"] / 360;
         } else {
-            tmp_rank -= (found_users["last_track"]/360) - 1;
+            tmp_rank = tmp_rank - found_users[i]["last_track"] / 360;
+            tmp_rank = tmp_rank - 1;
         }
     
-        found_users["rank"] = tmp_rank;
+        found_users[i]["rank"] = tmp_rank;
     }
-    
 }
 
 
@@ -395,6 +400,11 @@ function show(how) {
             row.appendChild(td);
             
             var td = document.createElement('td');
+            td.setAttribute("class", "artist_info");
+            td.innerHTML = found_users[i]["degree"];
+            row.appendChild(td);
+            
+            var td = document.createElement('td');
             td.setAttribute("class", "artist_followers");
             td.innerHTML = found_users[i]["followers"];
             row.appendChild(td);
@@ -437,9 +447,6 @@ function hide(id) {
     
     // reload seen
     load_seen();
-    
-    // determine rank
-    compute_rank();
     
     // show results
     show(how);

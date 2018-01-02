@@ -1139,9 +1139,10 @@ else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
     echo "<thead><tr>";
     echo "<th>hide</th>";
     echo "<th id=\"th_name\" onclick=\"change_sorting('name')\" >name&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_tracks\" onclick=\"change_sorting('tracks')\">tracks&nbsp;&nbsp;&nbsp;</th>";
     echo "<th id=\"th_rank\" onclick=\"change_sorting('rank')\">rank&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_degree\">degree&nbsp;&nbsp;&nbsp;</th>";
     echo "<th id=\"th_followers\" onclick=\"change_sorting('followers')\">followers&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_tracks\" onclick=\"change_sorting('tracks')\">tracks&nbsp;&nbsp;&nbsp;</th>";
     echo "<th id=\"th_lasttrack\" onclick=\"change_sorting('lasttrack')\">last track (days ago)&nbsp;&nbsp;&nbsp;</th>";
     echo "<th>description</th></tr></thead>\n";
     echo "<tbody id=\"results_body\"></tbody></table>";
