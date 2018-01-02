@@ -33,6 +33,41 @@ span.artist_info {
         font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;
 }
 
+tr.seen {
+    background-color: #dddddd;
+}
+
+td.hide {
+    display: block;
+    text-decoration: none;
+    font-family: Geneva, Arial, Helvetica, sans-serif; 
+    font-size: 12px;
+}
+
+td.hide:hover {
+    display: block;
+    text-decoration: none;
+    font-family: Geneva, Arial, Helvetica, sans-serif; 
+    font-size: 12px;
+    background-color: #ed6359;
+}
+
+td.unhide {
+    display: block;
+    text-decoration: none;
+    font-family: Geneva, Arial, Helvetica, sans-serif; 
+    font-size: 12px;
+    background-color: #ffffff;
+}
+
+td.unhide:hover {
+    display: block;
+    text-decoration: none;
+    font-family: Geneva, Arial, Helvetica, sans-serif; 
+    font-size: 12px;
+    background-color: #deebbf;
+}
+
 div.artist {
 	margin-bottom: 30px;
 	background-color: #ffffff;
@@ -62,10 +97,7 @@ a.ignore:visited {color: #000000; text-decoration: none, font-family: Geneva, Ar
 a.ignore:hover {color: #ff0000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
 a.ignore:active {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
 
-a.seen:link {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px; }
-a.seen:visited {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px; }
-a.seen:hover {color: #ff0000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
-a.seen:active {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 12px;}
+
 
 a.artist:link {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 14px; }
 a.artist:visited {color: #000000; text-decoration: none, font-family: Geneva, Arial, Helvetica, sans-serif; font-size: 14px; }
