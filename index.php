@@ -687,7 +687,6 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                                 $track_times = array();
                                 $track_avg_length = 0;
                                 $listeners = 0;
-                                $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
                                 foreach ($tracks as $track) {
                                     $track_genre[] = trim(strtolower($track["genre"]));
                                     $track_times[] = $track["created_at"];
