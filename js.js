@@ -73,18 +73,18 @@ function indicate_sorting() {
     document.getElementById("th_tracks").innerHTML = "tracks" + suffix;
     document.getElementById("th_rank").innerHTML = "rank" + suffix;
     document.getElementById("th_followers").innerHTML = "followers" + suffix;
-    document.getElementById("th_lasttrack").innerHTML = "last track (days ago)" + suffix;
+    document.getElementById("th_trackage").innerHTML = "median track age (days ago)" + suffix;
     
     // adjust indicator according to current how
     if (dir == "i") {
-        if (what =="lasttrack") {
-            document.getElementById("th_" + what).innerHTML = "▲ " + "last track (days ago)" + suffix;
+        if (what =="trackage") {
+            document.getElementById("th_" + what).innerHTML = "▲ " + "median track age (days ago)" + suffix;
         } else {
             document.getElementById("th_" + what).innerHTML = "▲ " + what + suffix;
         }
     } else {
-        if (what =="lasttrack") {
-            document.getElementById("th_" + what).innerHTML = "▼ " + "last track (days ago)" + suffix;
+        if (what =="trackage") {
+            document.getElementById("th_" + what).innerHTML = "▼ " + "median track age (days ago)" + suffix;
         } else {
             document.getElementById("th_" + what).innerHTML = "▼ " + what + suffix;
         }
@@ -231,11 +231,15 @@ function compute_rank() {
         var tmp_rank = (found_users[i]["tracks"] * found_users[i]['followers']) / max_rank;
         
         // after normalisation consider degree
-        tmp_rank = tmp_rank * ((found_users[i]["degree"] + 1) / (max_degree + 1));
+        if (tmp_rank >= 0) {
+            tmp_rank = tmp_rank * ((found_users[i]["degree"] + 1) / (max_degree + 1));
+        } else {
+            tmp_rank = tmp_rank / ((found_users[i]["degree"] + 1) / (max_degree + 1));
+        }
         
         // if last_track sooner than 360 days ago
         if (found_users[i]["last_track"] <= 360) {
-            tmp_rank = tmp_rank - found_users[i]["last_track"] / 360;
+            tmp_rank = tmp_rank * ( - found_users[i]["last_track"]) / 360;
         } else {
             tmp_rank = tmp_rank - found_users[i]["last_track"] / 360;
             tmp_rank = tmp_rank - 1;
@@ -256,12 +260,25 @@ function process_xml(xmlDoc) {
     var users = xmlDoc.getElementsByTagName("user");
     for (var i = 0; i < users.length; i++) {
         var user = new Array();
+        var user_genres = new Array();
+        var user_tags = new Array();
         user["id"] = users[i].getElementsByTagName("id")[0].textContent;
         user["name"] = users[i].getElementsByTagName("name")[0].textContent;
         user["link"] = users[i].getElementsByTagName("link")[0].textContent;
         user["tracks"] = users[i].getElementsByTagName("tracks")[0].textContent;
         user["followers"] = users[i].getElementsByTagName("followers")[0].textContent;
-        user["last_track"] = get_time_diff(users[i].getElementsByTagName("last_track")[0].textContent);
+        var genres = users[i].getElementsByTagName("genre");
+        for (var j = 0; j < genres.length; j++) {
+            user_genres.push(genres[j].textContent);
+        }
+        user["genres"] = user_genres;
+        var tags = users[i].getElementsByTagName("tag");
+        for (var j = 0; j < tags.length; j++) {
+            user_tags.push(tags[j].textContent);
+        }
+        user["tags"] = user_tags;
+        user["track_age"] = get_time_diff(users[i].getElementsByTagName("median_age")[0].textContent);
+        user["listeners"] = users[i].getElementsByTagName("listeners")[0].textContent;
         user["description"] = users[i].getElementsByTagName("description")[0].textContent;
         user["degree"] = users[i].getElementsByTagName("degree")[0].textContent;
         user["rank"] = 0;
@@ -331,14 +348,14 @@ function sort_results(results, how) {
             return a.followers - b.followers;
         });
     }
-    if (how == "lasttrack_i") {
+    if (how == "trackage_i") {
         results.sort(function(a,b) {
-            return a.last_track - b.last_track;
+            return a.track_age- b.track_age;
         });
     }
-    if (how == "lasttrack_d") {
+    if (how == "trackage_d") {
         results.sort(function(b,a) {
-            return a.last_track - b.last_track;
+            return a.track_age - b.track_age;
         });
     }
     if (how == "rank_i") {
@@ -391,6 +408,7 @@ function show(how) {
              
             var td = document.createElement('td');
             td.setAttribute("class", "artist_name");
+            td.setAttribute("title", "tags: " + found_users[i]["tags"].join(", ") + "<br/>genres: " + found_users[i]["genres"].join(", "));
             td.innerHTML = "<a class=\"artist\" target=\"_blank\" href=\"" + found_users[i]["link"] + "\">" + found_users[i]["name"] + "</a>";
             row.appendChild(td);
             
@@ -415,8 +433,8 @@ function show(how) {
             row.appendChild(td);
             
             var td = document.createElement('td');
-            td.setAttribute("class", "last_track");
-            td.innerHTML = found_users[i]["last_track"];
+            td.setAttribute("class", "track_age");
+            td.innerHTML = found_users[i]["track_age"];
             row.appendChild(td);
              
             var td = document.createElement('td');
