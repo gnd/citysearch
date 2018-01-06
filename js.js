@@ -6,6 +6,9 @@ var DESC_SIZE = 220;
 var how = "rank_d"
 var show_seen = false;
 var max_rank = 0;
+var max_tracks = 0;
+var max_followers = 0;
+var max_listeners = 0;
 var max_degree = 0;
 var duration = 0;
 
@@ -211,37 +214,62 @@ function seekxml() {
     }
 }
 
+// rank by distribution
+function anti_pareto_linear(amount, max) {
+    var result = 1;
+    amount = amount / max;
+    if (amount < 0.2) {
+        result = (amount*2.5)+0.5;
+    } else if (amount < 0.8) {
+        result = 1 - (amount - 0.2)/6*10*0.9;
+    } else {
+        result = 0.1;
+    }
+    return result;
+}
+
+
+// rank by Age
+function rank_by_age(age) {
+    // where does the sigmod hit 0
+    var zero = 730;
+    
+    //return 2/(1+Math.exp(0.033*(age-zero)))-1;
+    return 1/(1+Math.exp(0.005*(age-365)));
+}
+
+// rank by Age
+function rank_by_last(age) {
+    // where does the sigmod hit 0
+    var zero = 360;
+    
+    return 2/(1+Math.exp(0.033*(age-zero)))-1;
+}
+
+
 
 // compute user rank
 function compute_rank() {
-    // rank is a function of the above inputs
-    // more tracks = better
-    // more followers = better
-    // more degree = better
-    // if a track sooner then 360 days ago, higher, and sooner = better, if not falls down
-    
-    // populate with results and honour show_seen
     for (var i = 0; i < found_users.length; i++) {
+
+        // tracks
+        var track_rank = anti_pareto_linear(found_users[i]["tracks"], max_tracks);
+        var track_age_rank = rank_by_age(found_users[i]["mta"]);
+        var last_track_rank = rank_by_last(found_users[i]["lta"]);
         
-        // normalize first
-        var tmp_rank = (found_users[i]["tracks"] * found_users[i]['followers']) / max_rank;
+        // followers
+        var followers_rank = anti_pareto_linear(found_users[i]["followers"], max_followers);
         
-        // after normalisation consider degree
-        if (tmp_rank >= 0) {
-            tmp_rank = tmp_rank * ((found_users[i]["degree"] + 1) / (max_degree + 1));
-        } else {
-            tmp_rank = tmp_rank / ((found_users[i]["degree"] + 1) / (max_degree + 1));
-        }
+        // listeners
+        var listeners_rank = anti_pareto_linear(found_users[i]["listeners"], max_listeners);
         
-        // if last_track sooner than 360 days ago
-        if (found_users[i]["last_age"] <= 360) {
-            tmp_rank = tmp_rank * ( - found_users[i]["last_age"]) / 360;
-        } else {
-            tmp_rank = tmp_rank - found_users[i]["last_age"] / 360;
-            tmp_rank = tmp_rank - 1;
-        }
-    
-        found_users[i]["rank"] = tmp_rank;
+        // degree
+        var degree_rank = (found_users[i]["degree"] + 1) / (found_users[i]["degree"] + 2)
+        
+        // depth
+        var depth_rank = (found_users[i]["depth"] / 10) + 1;
+           
+        found_users[i]["rank"] = (track_rank * track_age_rank * followers_rank * listeners_rank * degree_rank * depth_rank)*10 + last_track_rank;
     }
 }
 
@@ -279,15 +307,24 @@ function process_xml(xmlDoc) {
         user["depth"] = users[i].getElementsByTagName("depth")[0].textContent;
         user["rank"] = 0;
         
-        // find maximum degree
-        if (users[i].getElementsByTagName("degree")[0].textContent > max_degree) {
-            max_degree = users[i].getElementsByTagName("degree")[0].textContent;
+        // find maximum tracks
+        if (user["tracks"] > max_tracks) {
+            max_tracks = user["tracks"];
         }
         
-        // set initial rank and find maximum
-        var temp_rank = users[i].getElementsByTagName("tracks")[0].textContent * users[i].getElementsByTagName("followers")[0].textContent;
-        if (temp_rank > max_rank) {
-            max_rank = temp_rank;
+        // find maximum followers
+        if (user["followers"] > max_followers) {
+            max_followers = user["followers"];
+        }
+        
+        // find maximum listeners
+        if (user["listeners"] > max_listeners) {
+            max_listeners = user["listeners"];
+        }
+        
+        // find maximum degree
+        if (user["degree"] > max_degree) {
+            max_degree = user["degree"];
         }
         
         found_users.push(user); 
@@ -440,7 +477,7 @@ function show(how) {
             
             var td = document.createElement('td');
             td.setAttribute("class", "artist_info");
-            td.innerHTML = found_users[i]["rank"];
+            td.innerHTML = found_users[i]["rank"].toFixed(5);
             row.appendChild(td);
             
             var td = document.createElement('td');
