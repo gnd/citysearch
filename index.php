@@ -897,6 +897,11 @@ if (isset($_GET["code"])) {
         }
         $_SESSION["country_aliases"] = $country_aliases;
         
+        // clear temp session data from db
+        $mydb->clearSessionStatus($_SESSION["user_data"]["id"]);
+        $mydb->clearSessionProgress($_SESSION["user_data"]["id"]);
+        $mydb->updateSessionStatus($_SESSION["user_data"]["id"], 0, 0, 0);
+        
         // Preload followed ids
         try {
             $offset = 0;

@@ -4,7 +4,7 @@ var found_users;
 var search_status;
 
 
-var DESC_SIZE = 220;
+var DESC_SIZE = 200;
 var how = "rank_d"
 var show_seen = false;
 var max_rank = 0;
