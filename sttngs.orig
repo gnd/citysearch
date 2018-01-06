@@ -13,4 +13,8 @@ $sc_client_secret = "";
 $sc_redirect = "";
 $sc_page_limit = 150;
 
+// citysearch settings
+$dev_version = 0;
+$MAX_ACCEPTED_AVG_TRACK_LENGTH = 1800;
+
 ?>
