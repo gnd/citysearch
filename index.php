@@ -405,7 +405,7 @@ if (isset($_REQUEST["unsee"]) && ($_REQUEST["unsee"] != 0)) {
  * Shows seen users as a XML
  * 
  */
- if (isset($_REQUEST["seenxml"]) && ($_REQUEST["seenxml"] != 0)) {
+if (isset($_REQUEST["seenxml"]) && ($_REQUEST["seenxml"] != 0)) {
     
     // Load seen ids
     $seen_ids = array();
@@ -536,7 +536,21 @@ else if (isset($_REQUEST["delcountryalias"])) {
     header('Location: index.php?aliases=1');
 }
 
-
+/*
+ * Show search status as XML
+ * 
+ */
+else if ( isset($_REQUEST["statusxml"]) && ($_REQUEST["statusxml"] != 0) ) {
+    
+    if ($_SESSION["searching"] == 1) {
+        echo "Searching<br/>";
+        echo "Depth: " . $_SESSION["searching_depth"] . "/" . $_SESSION["searching_max_depth"] . "<br/>";
+        echo "Progress: " . 100 * $_SESSION["searching_progress"]. "<br/>";
+    } else {
+        echo "Not searching";
+    }
+    die();
+}
 
 /*
  * Just like seek, but output a XML
@@ -561,10 +575,15 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
         $initial_seed_ids = $seed_ids;
         $found_ids = $seed_ids;
         $found_users = array();
+        $id_index = 0;
         $before = microtime(true);
             
         for ($depth = 0; $depth <= $max_depth; $depth ++) {
+            $id_index = 0;
+            $mydb->updateSessionStatus($_SESSION["user_data"]["id"], 1, $depth, $max_depth);
             foreach ($seed_ids as $id) {
+                $id_index += 1;
+                $mydb->updateSessionProgress($_SESSION["user_data"]["id"], $id_index / count($seed_ids));
                 $offset = 0;
                     
                 $following = json_decode($soundcloud->get('users/' . $id . '/followings', array('limit' => $sc_page_limit, 'offset' => $offset)), true);
@@ -732,8 +751,12 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
             }
         }
         
+        $mydb->updateSessionStatus($_SESSION["user_data"]["id"], 'initial', 0, 0);
+        $id_index = 0;
         // lastly include also the initial seed
         foreach ($initial_seed_ids as $id) {
+            $id_index += 1;
+            $mydb->updateSessionProgress($_SESSION["user_data"]["id"], $id_index / count($seed_ids));
             $offset = 0;
             $user = json_decode($soundcloud->get('users/' . $id, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
             $city = strtolower($user["city"]);
@@ -795,6 +818,9 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                 }
             }
         }
+        $mydb->clearSessionStatus($_SESSION["user_data"]["id"]);
+        $mydb->clearSessionProgress($_SESSION["user_data"]["id"]);
+        $mydb->updateSessionStatus($_SESSION["user_data"]["id"], 0, 0, 0);
         
         // show them
         display_user_results_xml($found_users, microtime(true) - $before);
@@ -1317,6 +1343,7 @@ else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
     echo "<tbody id=\"results_body\"></tbody></table>";
     echo "</div>";
 
+    echo "<input id=\"uid\" type=\"hidden\" value=\"".$_SESSION["user_data"]["id"]."\">";
     echo "</div></body></html>";
 } 
 

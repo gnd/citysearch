@@ -1,6 +1,8 @@
 var seen;   
 var cities; // the php $_SESSION["cities"] array created at first login
 var found_users;
+var search_status;
+
 
 var DESC_SIZE = 220;
 var how = "rank_d"
@@ -11,6 +13,9 @@ var max_followers = 0;
 var max_listeners = 0;
 var max_degree = 0;
 var duration = 0;
+var search_progress_check;
+var search_progress_refresh_period = 500;
+var uid = 0;
 
 // autoload seen ids on page load
 if(window.attachEvent) {
@@ -54,6 +59,8 @@ function pageload() {
     
     // hide results div before we search
     document.getElementById("results").style.display = "none";
+    
+    uid = document.getElementById("uid").value;
 }
 
 
@@ -136,6 +143,53 @@ function load_cities() {
     }
 }
 
+// periodically check on search status once underway
+function search_progress_check() {
+    
+    if (window.XMLHttpRequest) {
+       status_xhttp = new XMLHttpRequest();
+    } else {    // IE 5/6
+       status_xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+    
+    // initiate connection
+    status_xhttp.open("GET", "status.php?uid="+uid, true);
+    status_xhttp.addEventListener("load", processStatus);
+    status_xhttp.send(null);
+}
+
+
+// process and show search status data
+function processStatus() {
+    try {
+        process_status_xml(status_xhttp.responseXML);
+        if (search_status["status"] == "initial") {
+            document.getElementById("search_status").innerHTML = "finalizing: " + search_status["search_progress"] + " %";
+            document.getElementById("search_status").style.backgroundColor = "#fcf800";
+        } else {
+            document.getElementById("search_status").innerHTML = "searching: depth " + search_status["curr_depth"] + "/" + search_status["max_depth"] + ": " + search_status["search_progress"] + " %";
+            document.getElementById("search_status").style.backgroundColor = "#fcc900";
+        }
+    } 
+    catch(err) {
+        console.log("Reading search status: Oops ..");
+    }
+}
+
+
+// load search status into a array
+function process_status_xml(xmlDoc) {
+    
+    // clean search_status array
+    search_status = new Array();
+    
+    // get data
+    search_status["status"] = xmlDoc.getElementsByTagName("searching")[0].textContent;
+    search_status["curr_depth"] = xmlDoc.getElementsByTagName("curr_depth")[0].textContent;
+    search_status["max_depth"] = xmlDoc.getElementsByTagName("max_depth")[0].textContent;
+    search_status["search_progress"] = xmlDoc.getElementsByTagName("search_progress")[0].textContent;
+}
+
 
 // load citysearch (seek) from XML
 function seekxml() {
@@ -192,26 +246,34 @@ function seekxml() {
         params += "&" + "seek_depth" + "=" + encodeURIComponent(depth);
         
         // initiate connection
-        xhttp.open("POST", "index.php", false);
+        xhttp.open("POST", "index.php", true);
         xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhttp.addEventListener("load", processResponse);
         xhttp.send(params);
         
-        // process response
-        var xmlDoc = xhttp.responseXML;
-        process_xml(xmlDoc);
-        
-        // determine rank
-        compute_rank();
-        
-        // show results
-        show(how);
-        
-        // indicate search status
-        document.getElementById("search_status").innerHTML = found_users.length + " users found in " + Number(duration).toFixed(2) + " seconds";
-        document.getElementById("search_status").style.backgroundColor = "#60fd6b";
-        
-        //alert("max_rank: " + max_rank + " max_degree: " + max_degree);
+        // starts progress reporting
+        search_progress_loop = self.setInterval(search_progress_check, search_progress_refresh_period);
     }
+}
+
+
+function processResponse() {
+    
+    // process xml
+    process_xml(xhttp.responseXML);
+        
+    // determine rank
+    compute_rank();
+    
+    // stop progress reporting
+    window.clearInterval(search_progress_loop);
+        
+    // show results
+    show(how);
+        
+    // update search status
+    document.getElementById("search_status").innerHTML = found_users.length + " users found in " + Number(duration).toFixed(2) + " seconds";
+    document.getElementById("search_status").style.backgroundColor = "#60fd6b";
 }
 
 // rank by distribution
@@ -274,7 +336,7 @@ function compute_rank() {
 }
 
 
-// load results into a array
+// load search results into a array
 function process_xml(xmlDoc) {
     
     // clean found_users array
