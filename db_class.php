@@ -86,6 +86,38 @@ class db {
         $result = $this->db->query("SELECT id, country, alias FROM " . $this->prfx . "_country_alias WHERE uid = $uid");
         return $result;
     }
+    
+    // create table ed_sess_status ( id int AUTO_INCREMENT PRIMARY KEY, uid int, status varchar(10), curr_dep int, max_dep int);
+    function updateSessionStatus($uid, $status, $current_depth, $max_depth) {
+        $result = $this->db->query("INSERT INTO " . $this->prfx . "_sess_status VALUES(0, $uid, '$status', $current_depth, $max_depth)");
+        return $result;
+    }
+    
+    // create table ed_sess_progress ( id int AUTO_INCREMENT PRIMARY KEY, uid int, progress int);
+    function updateSessionProgress($uid, $progress) {
+        $result = $this->db->query("INSERT INTO " . $this->prfx . "_sess_progress VALUES(0, $uid, ".(int)(100*$progress).")");
+        return $result;
+    }
+    
+    function getSessionStatus($uid) {
+        $result = $this->db->query("SELECT status, curr_dep, max_dep FROM " . $this->prfx . "_sess_status WHERE uid = $uid ORDER BY id DESC LIMIT 1");
+        return $result;
+    }
+    
+    function getSessionProgress($uid) {
+        $result = $this->db->query("SELECT progress FROM " . $this->prfx . "_sess_progress WHERE uid = $uid ORDER BY id DESC LIMIT 1");
+        return $result;
+    }
+    
+    function clearSessionStatus($uid) {
+        $result = $this->db->query("DELETE FROM " . $this->prfx . "_sess_status WHERE uid = $uid");
+        return $result;
+    }
+    
+    function clearSessionProgress($uid) {
+        $result = $this->db->query("DELETE FROM " . $this->prfx . "_sess_progress WHERE uid = $uid");
+        return $result;
+    }
 }
 
 ?>
