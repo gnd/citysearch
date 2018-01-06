@@ -257,27 +257,27 @@ function display_user_results_xml($users, $duration) {
             $description = $user["description"];
             $followers = $user["followers_count"];
             $genres = $user["track_genres"];
-            $tags = $user["track_tags"];
             $median_age = $user["median_track_age"];
+            $last_age = $user["last_track_age"];
             $listeners = $user["listeners_count"];
             $degree = $user["degree"];
+            $depth = $user["depth"];
             
             echo "<user>\n";
                 echo "\t<id>".$id."</id>\n";
-                echo "\t<name>".$name."</name>\n";
+                echo "\t<name>".str_replace("&", "&#038;",$name)."</name>\n";
                 echo "\t<link>".$link."</link>\n";
                 echo "\t<tracks>".$tracks."</tracks>\n";
                 echo "\t<followers>".$followers."</followers>\n";
                 echo "\t<genres>\n";
                 foreach ($genres as $genre) { if ($genre != "") { echo "\t\t<genre>".str_replace("&", "&#038;",strip_tags(addslashes($genre)))."</genre>\n"; } }
                 echo "\t</genres>\n";
-                echo "\t<tags>\n";
-                foreach ($tags as $tag) { if ($tag != "") { echo "\t\t<tag>".str_replace("&", "&#038;",strip_tags(addslashes($tag)))."</tag>\n"; } }
-                echo "\t</tags>\n";
                 echo "\t<median_age>".$median_age."</median_age>\n";
+                echo "\t<last_age>".$last_age."</last_age>\n";
                 echo "\t<listeners>".$listeners."</listeners>\n";
                 echo "\t<description>\n\t\t".str_replace("&", "&#038;", strip_tags(addslashes($description)))."\n\t</description>\n";
                 echo "\t<degree>".$degree."</degree>\n";
+                echo "\t<depth>".$depth."</depth>\n";
             echo "</user>\n";
         }
     }
@@ -576,57 +576,68 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                         if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
                             
                             // get info on all users tracks
-                            $track_genre = array();
-                            $track_tags = array();
-                            $track_times = array();
-                            $track_avg_length = 0;
-                            $listeners = 0;
-                            $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
-                            foreach ($tracks as $track) {
-                                $track_genre[] = trim(strtolower($track["genre"]));
-                                if ($track["tag_list"] != "") {
-                                    foreach (explode(" ",$track["tag_list"]) as $tag) {
-                                        $track_tags = trim(strtolower($tag));
+                            $failed = 0;
+                            try {
+                                $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
+                            } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
+                                error_log("Failed getting track data for id: " . $followed["id"] . " at " . $followed["permalink_url"]);
+                                $failed = 1;
+                            }                                
+                            
+                            if ((count($tracks) > 0 ) && ($failed < 1)) {
+                                $track_genre = array();
+                                $track_tags = array();
+                                $track_times = array();
+                                $track_avg_length = 0;
+                                $listeners = 0;
+                                foreach ($tracks as $track) {
+                                    $track_genre[] = trim(strtolower($track["genre"]));
+                                    $track_times[] = $track["created_at"];
+                                    $track_avg_length = $track_avg_length + $track["duration"];
+                                    if (isset($track["playback_count"])) {
+                                        $listeners = $listeners + $track["playback_count"];
+                                    }
+                                }    
+                                // process track data - find median track age & average length 
+                                sort($track_times);
+                                if (count($track_times) % 2 == 0) {
+                                    // even number of elements, behave as if we would discard the oldest and take that median
+                                    $median_track_age = $track_times[count($track_times) / 2];
+                                } else {
+                                    if (count($track_times) == 1) {
+                                        $median_track_age = $track_times[0];
+                                    } else {
+                                        // odd number, take middle element
+                                        $median_track_age = $track_times[(count($track_times)+1) / 2];
                                     }
                                 }
-                                $track_times[] = $track["created_at"];
-                                $track_avg_length = $track_avg_length + $track["duration"];
-                                $listeners = $listeners + $track["playback_count"];
-                            }    
-                            
-                            // process track data - find median track age & average length 
-                            sort($track_times);
-                            if (count($track_times) % 2 == 0) {
-                                // even number of elements, behave as if we would discard the oldest and take that median
-                                $track_median_age = $track_times[count($track_times) / 2];
-                            } else {
-                                if (count($track_times) == 1) {
-                                    $track_median_age = $track_times[0];
-                                } else {
-                                    // odd number, take middle element
-                                    $track_median_age = $track_times[(count($track_times)+1) / 2];
-                                }
-                            }
-                            $track_avg_length = $track_avg_length / count($tracks) / 1000;
-                            
-                            if ($track_avg_length < $MAX_ACCEPTED_AVG_TRACK_LENGTH) { // not a dj-set account
-                                if (!in_array($followed["id"], $found_ids)) {
-                                    $found_ids[] = $followed["id"];
-                                    $valid_user_data = array();
-                                    $valid_user_data["id"] = $followed["id"];
-                                    $valid_user_data["username"] = $followed["username"];
-                                    $valid_user_data["permalink"] = $followed["permalink_url"];
-                                    $valid_user_data["description"] = $followed["description"];
-                                    $valid_user_data["tracks"] = $followed["track_count"];
-                                    $valid_user_data["followers_count"] = $followed["followers_count"];
-                                    $valid_user_data["track_genres"] = array_unique($track_genre,SORT_STRING);
-                                    $valid_user_data["track_tags"] = array_unique($track_tags,SORT_STRING);
-                                    $valid_user_data["median_track_age"] = $track_median_age;
-                                    $valid_user_data["listeners_count"] = $listeners;
-                                    $valid_user_data["degree"] = 0;
-                                    $found_users[$followed["id"]] = $valid_user_data;
-                                } else if (!in_array($followed["id"], $initial_seed_ids)) {
-                                    $found_users[$followed["id"]]["degree"] = $found_users[$followed["id"]]["degree"] + 1;
+                                $track_avg_length = $track_avg_length / count($tracks) / 1000;
+                                $last_track_age = $tracks[0]["created_at"];
+                                
+                                if ($track_avg_length < $MAX_ACCEPTED_AVG_TRACK_LENGTH) { // not a dj-set account
+                                    if (!in_array($followed["id"], $found_ids)) {
+                                        $found_ids[] = $followed["id"];
+                                        $valid_user_data = array();
+                                        $valid_user_data["id"] = $followed["id"];
+                                        $valid_user_data["username"] = $followed["username"];
+                                        $valid_user_data["permalink"] = $followed["permalink_url"];
+                                        $valid_user_data["description"] = $followed["description"];
+                                        $valid_user_data["tracks"] = count($tracks);
+                                        $valid_user_data["followers_count"] = $followed["followers_count"];
+                                        $valid_user_data["track_genres"] = array_unique($track_genre,SORT_STRING);
+                                        $valid_user_data["median_track_age"] = $median_track_age;
+                                        $valid_user_data["last_track_age"] = $last_track_age;
+                                        $valid_user_data["listeners_count"] = $listeners;
+                                        $valid_user_data["degree"] = 0;
+                                        $valid_user_data["depth"] = $depth+1;
+                                        $found_users[$followed["id"]] = $valid_user_data;
+                                    } else { //if (!in_array($followed["id"], $initial_seed_ids)) {
+                                        if (!isset($found_users[$followed["id"]]["degree"])) {
+                                            $found_users[$followed["id"]]["degree"] = 0;
+                                        } else {
+                                            $found_users[$followed["id"]]["degree"] = $found_users[$followed["id"]]["degree"] + 1;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -643,53 +654,69 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                         if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
                             
                             // get info on all users tracks
-                            $track_genre = array();
-                            $track_tags = array();
-                            $track_times = array();
-                            $track_avg_length = 0;
-                            $listeners = 0;
-                            $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
-                            foreach ($tracks as $track) {
-                                $track_genre[] = trim(strtolower($track["genre"]));
-                                if ($track["tag_list"] != "") {
-                                    foreach (explode(" ",$track["tag_list"]) as $tag) {
-                                        $track_tags = trim(strtolower($tag));
+                            $failed = 0;
+                            try {
+                                $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
+                            } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
+                                error_log("Failed getting track data for id: " . $followed["id"] . " at " . $followed["permalink_url"]);
+                                $failed = 1;
+                            } 
+                            
+                            if ((count($tracks) > 0 ) && ($failed < 1)) {
+                                $track_genre = array();
+                                $track_tags = array();
+                                $track_times = array();
+                                $track_avg_length = 0;
+                                $listeners = 0;
+                                $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
+                                foreach ($tracks as $track) {
+                                    $track_genre[] = trim(strtolower($track["genre"]));
+                                    $track_times[] = $track["created_at"];
+                                    $track_avg_length = $track_avg_length + $track["duration"];
+                                    if (isset($track["playback_count"])) {
+                                        $listeners = $listeners + $track["playback_count"];
+                                    }
+                                }    
+                                // process track data - find median track age & average length 
+                                sort($track_times);
+                                if (count($track_times) % 2 == 0) {
+                                    // even number of elements, behave as if we would discard the oldest and take that median
+                                    $median_track_age = $track_times[count($track_times) / 2];
+                                } else {
+                                    if (count($track_times) == 1) {
+                                        $median_track_age = $track_times[0];
+                                    } else {
+                                        // odd number, take middle element
+                                        $median_track_age = $track_times[(count($track_times)+1) / 2];
                                     }
                                 }
-                                $track_times[] = $track["created_at"];
-                                $track_avg_length = $track_avg_length + $track["duration"];
-                                $listeners = $listeners + $track["playback_count"];
-                            }    
-                            
-                            // process track data - find median track age & average length 
-                            sort($track_times);
-                            if (count($track_times) % 2 == 0) {
-                                // even number of elements, behave as if we would discard the oldest and take that median
-                                $track_median_age = $track_times[count($track_times) / 2];
-                            } else {
-                                // odd number, take middle element
-                                $track_median_age = $track_times[(count($track_times)+1) / 2];
-                            }
-                            $track_avg_length = $track_avg_length / count($tracks) / 1000;
-                            
-                            if ($track_avg_length < $MAX_ACCEPTED_AVG_TRACK_LENGTH) { // not a dj-set account
-                                if (!in_array($followed["id"], $found_ids)) {
-                                    $found_ids[] = $followed["id"];
-                                    $valid_user_data = array();
-                                    $valid_user_data["id"] = $followed["id"];
-                                    $valid_user_data["username"] = $followed["username"];
-                                    $valid_user_data["permalink"] = $followed["permalink_url"];
-                                    $valid_user_data["description"] = $followed["description"];
-                                    $valid_user_data["tracks"] = $followed["track_count"];
-                                    $valid_user_data["followers_count"] = $followed["followers_count"];
-                                    $valid_user_data["track_genres"] = array_unique($track_genre,SORT_STRING);
-                                    $valid_user_data["track_tags"] = array_unique($track_tags,SORT_STRING);
-                                    $valid_user_data["median_track_age"] = $track_median_age;
-                                    $valid_user_data["listeners_count"] = $listeners;
-                                    $valid_user_data["degree"] = 0;
-                                    $found_users[$followed["id"]] = $valid_user_data;
-                                } else if (!in_array($followed["id"], $initial_seed_ids)) {
-                                    $found_users[$followed["id"]]["degree"] = $found_users[$followed["id"]]["degree"] + 1;
+                                $track_avg_length = $track_avg_length / count($tracks) / 1000;
+                                $last_track_age = $tracks[0]["created_at"];
+                                
+                                if ($track_avg_length < $MAX_ACCEPTED_AVG_TRACK_LENGTH) { // not a dj-set account
+                                    if (!in_array($followed["id"], $found_ids)) {
+                                        $found_ids[] = $followed["id"];
+                                        $valid_user_data = array();
+                                        $valid_user_data["id"] = $followed["id"];
+                                        $valid_user_data["username"] = $followed["username"];
+                                        $valid_user_data["permalink"] = $followed["permalink_url"];
+                                        $valid_user_data["description"] = $followed["description"];
+                                        $valid_user_data["tracks"] = count($tracks);
+                                        $valid_user_data["followers_count"] = $followed["followers_count"];
+                                        $valid_user_data["track_genres"] = array_unique($track_genre,SORT_STRING);
+                                        $valid_user_data["median_track_age"] = $median_track_age;
+                                        $valid_user_data["last_track_age"] = $last_track_age;
+                                        $valid_user_data["listeners_count"] = $listeners;
+                                        $valid_user_data["degree"] = 0;
+                                        $valid_user_data["depth"] = $depth+1;
+                                        $found_users[$followed["id"]] = $valid_user_data;
+                                    } else { //if (!in_array($followed["id"], $initial_seed_ids)) {
+                                        if (!isset($found_users[$followed["id"]]["degree"])) {
+                                            $found_users[$followed["id"]]["degree"] = 0;
+                                        } else {
+                                            $found_users[$followed["id"]]["degree"] = $found_users[$followed["id"]]["degree"] + 1;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -704,7 +731,71 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                 }
             }
         }
-            
+        
+        // lastly include also the initial seed
+        foreach ($initial_seed_ids as $id) {
+            $offset = 0;
+            $user = json_decode($soundcloud->get('users/' . $id, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+            $city = strtolower($user["city"]);
+            if ( ($user['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
+                // get info on all users tracks
+                $failed = 0;
+                try {
+                    $tracks = json_decode($soundcloud->get('users/' . $id . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
+                } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
+                    error_log("Failed getting track data for id: " . $id . " at " . $user["permalink_url"]);
+                    $failed = 1;
+                } 
+                
+                if ((count($tracks) > 0 ) && ($failed < 1)) {
+                    $track_genre = array();
+                    $track_tags = array();
+                    $track_times = array();
+                    $track_avg_length = 0;
+                    $listeners = 0;
+                    foreach ($tracks as $track) {
+                        $track_genre[] = trim(strtolower($track["genre"]));
+                        $track_times[] = $track["created_at"];
+                        $track_avg_length = $track_avg_length + $track["duration"];
+                        if (isset($track["playback_count"])) {
+                            $listeners = $listeners + $track["playback_count"];
+                        }
+                    }    
+                    // process track data - find median track age & average length 
+                    sort($track_times);
+                    if (count($track_times) % 2 == 0) {
+                        // even number of elements, behave as if we would discard the oldest and take that median
+                        $median_track_age = $track_times[count($track_times) / 2];
+                    } else {
+                        if (count($track_times) == 1) {
+                            $median_track_age = $track_times[0];
+                        } else {
+                            // odd number, take middle element
+                            $median_track_age = $track_times[(count($track_times)+1) / 2];
+                        }
+                    }
+                    $track_avg_length = $track_avg_length / count($tracks) / 1000;
+                    $last_track_age = $tracks[0]["created_at"];
+                                
+                    if ($track_avg_length < $MAX_ACCEPTED_AVG_TRACK_LENGTH) { // not a dj-set account
+                        $valid_user_data = array();
+                        $found_users[$id]["id"] = $user["id"];
+                        $found_users[$id]["username"] = $user["username"];
+                        $found_users[$id]["permalink"] = $user["permalink_url"];
+                        $found_users[$id]["description"] = $user["description"];
+                        $found_users[$id]["tracks"] = count($tracks);
+                        $found_users[$id]["followers_count"] = $user["followers_count"];
+                        $found_users[$id]["track_genres"] = array_unique($track_genre,SORT_STRING);
+                        $found_users[$id]["median_track_age"] = $median_track_age;
+                        $found_users[$id]["last_track_age"] = $last_track_age;
+                        $found_users[$id]["listeners_count"] = $listeners;
+                        $found_users[$id]["depth"] = 0;
+                        if (!isset($found_users[$id]["degree"])) { $found_users[$id]["degree"] = 0; }
+                    }
+                }
+            }
+        }
+        
         // show them
         display_user_results_xml($found_users, microtime(true) - $before);
         
@@ -1216,10 +1307,12 @@ else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
     echo "<th>hide</th>";
     echo "<th id=\"th_name\" onclick=\"change_sorting('name')\" >name&nbsp;&nbsp;&nbsp;</th>";
     echo "<th id=\"th_rank\" onclick=\"change_sorting('rank')\">rank&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_degree\">degree&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_depth\" onclick=\"change_sorting('depth')\">deppth&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_deg\" onclick=\"change_sorting('deg')\">degree&nbsp;&nbsp;&nbsp;</th>";
     echo "<th id=\"th_followers\" onclick=\"change_sorting('followers')\">followers&nbsp;&nbsp;&nbsp;</th>";
     echo "<th id=\"th_tracks\" onclick=\"change_sorting('tracks')\">tracks&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_trackage\" onclick=\"change_sorting('trackage')\">median track age (days ago)&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_mta\" onclick=\"change_sorting('mta')\" title=\"Median Track Age (days ago)\">mta&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_lta\" onclick=\"change_sorting('lta')\" title=\"Last Track Age (days ago)\">lta&nbsp;&nbsp;&nbsp;</th>";
     echo "<th>description</th></tr></thead>\n";
     echo "<tbody id=\"results_body\"></tbody></table>";
     echo "</div>";

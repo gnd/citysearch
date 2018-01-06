@@ -7,6 +7,7 @@ var how = "rank_d"
 var show_seen = false;
 var max_rank = 0;
 var max_degree = 0;
+var duration = 0;
 
 // autoload seen ids on page load
 if(window.attachEvent) {
@@ -70,24 +71,19 @@ function indicate_sorting() {
     
     // make all sorting indicators default
     document.getElementById("th_name").innerHTML = "name" + suffix;
-    document.getElementById("th_tracks").innerHTML = "tracks" + suffix;
     document.getElementById("th_rank").innerHTML = "rank" + suffix;
+    document.getElementById("th_depth").innerHTML = "depth" + suffix;
+    document.getElementById("th_deg").innerHTML = "deg" + suffix;
+    document.getElementById("th_tracks").innerHTML = "tracks" + suffix;
     document.getElementById("th_followers").innerHTML = "followers" + suffix;
-    document.getElementById("th_trackage").innerHTML = "median track age (days ago)" + suffix;
+    document.getElementById("th_mta").innerHTML = "mta" + suffix;
+    document.getElementById("th_lta").innerHTML = "lta" + suffix;
     
     // adjust indicator according to current how
     if (dir == "i") {
-        if (what =="trackage") {
-            document.getElementById("th_" + what).innerHTML = "▲ " + "median track age (days ago)" + suffix;
-        } else {
-            document.getElementById("th_" + what).innerHTML = "▲ " + what + suffix;
-        }
+        document.getElementById("th_" + what).innerHTML = "▲ " + what + suffix;
     } else {
-        if (what =="trackage") {
-            document.getElementById("th_" + what).innerHTML = "▼ " + "median track age (days ago)" + suffix;
-        } else {
-            document.getElementById("th_" + what).innerHTML = "▼ " + what + suffix;
-        }
+        document.getElementById("th_" + what).innerHTML = "▼ " + what + suffix;
     }
 }
 
@@ -208,10 +204,10 @@ function seekxml() {
         show(how);
         
         // indicate search status
-        document.getElementById("search_status").innerHTML = "done !";
+        document.getElementById("search_status").innerHTML = found_users.length + " users found in " + Number(duration).toFixed(2) + " seconds";
         document.getElementById("search_status").style.backgroundColor = "#60fd6b";
         
-        alert("max_rank: " + max_rank + " max_degree: " + max_degree);
+        //alert("max_rank: " + max_rank + " max_degree: " + max_degree);
     }
 }
 
@@ -238,10 +234,10 @@ function compute_rank() {
         }
         
         // if last_track sooner than 360 days ago
-        if (found_users[i]["last_track"] <= 360) {
-            tmp_rank = tmp_rank * ( - found_users[i]["last_track"]) / 360;
+        if (found_users[i]["last_age"] <= 360) {
+            tmp_rank = tmp_rank * ( - found_users[i]["last_age"]) / 360;
         } else {
-            tmp_rank = tmp_rank - found_users[i]["last_track"] / 360;
+            tmp_rank = tmp_rank - found_users[i]["last_age"] / 360;
             tmp_rank = tmp_rank - 1;
         }
     
@@ -255,6 +251,9 @@ function process_xml(xmlDoc) {
     
     // clean found_users array
     found_users = new Array();
+    
+    // get duration
+    duration = xmlDoc.getElementsByTagName("duration")[0].textContent;
     
     // populate found users array
     var users = xmlDoc.getElementsByTagName("user");
@@ -272,15 +271,12 @@ function process_xml(xmlDoc) {
             user_genres.push(genres[j].textContent);
         }
         user["genres"] = user_genres;
-        var tags = users[i].getElementsByTagName("tag");
-        for (var j = 0; j < tags.length; j++) {
-            user_tags.push(tags[j].textContent);
-        }
-        user["tags"] = user_tags;
-        user["track_age"] = get_time_diff(users[i].getElementsByTagName("median_age")[0].textContent);
+        user["mta"] = get_time_diff(users[i].getElementsByTagName("median_age")[0].textContent);
+        user["lta"] = get_time_diff(users[i].getElementsByTagName("last_age")[0].textContent);
         user["listeners"] = users[i].getElementsByTagName("listeners")[0].textContent;
         user["description"] = users[i].getElementsByTagName("description")[0].textContent;
         user["degree"] = users[i].getElementsByTagName("degree")[0].textContent;
+        user["depth"] = users[i].getElementsByTagName("depth")[0].textContent;
         user["rank"] = 0;
         
         // find maximum degree
@@ -328,6 +324,36 @@ function sort_results(results, how) {
             return 0;
         });
     }
+    if (how == "rank_i") {
+        results.sort(function(a,b) {
+            return a.rank - b.rank;
+        });
+    }
+    if (how == "rank_d") {
+        results.sort(function(b,a) {
+            return a.rank - b.rank;
+        });
+    }
+    if (how == "depth_i") {
+        results.sort(function(a,b) {
+            return a.depth - b.depth;
+        });
+    }
+    if (how == "depth_d") {
+        results.sort(function(b,a) {
+            return a.depth - b.depth;
+        });
+    }
+    if (how == "deg_i") {
+        results.sort(function(a,b) {
+            return a.degree - b.degree;
+        });
+    }
+    if (how == "deg_d") {
+        results.sort(function(b,a) {
+            return a.degree - b.degree;
+        });
+    }
     if (how == "tracks_i") {
         results.sort(function(a,b) {
             return a.tracks - b.tracks;
@@ -348,24 +374,24 @@ function sort_results(results, how) {
             return a.followers - b.followers;
         });
     }
-    if (how == "trackage_i") {
+    if (how == "mta_i") {
         results.sort(function(a,b) {
-            return a.track_age- b.track_age;
+            return a.mta- b.mta;
         });
     }
-    if (how == "trackage_d") {
+    if (how == "mta_d") {
         results.sort(function(b,a) {
-            return a.track_age - b.track_age;
+            return a.mta - b.mta;
         });
     }
-    if (how == "rank_i") {
+    if (how == "lta_i") {
         results.sort(function(a,b) {
-            return a.rank - b.rank;
+            return a.lta- b.lta;
         });
     }
-    if (how == "rank_d") {
+    if (how == "lta_d") {
         results.sort(function(b,a) {
-            return a.rank - b.rank;
+            return a.lta - b.lta;
         });
     }
 }
@@ -408,13 +434,18 @@ function show(how) {
              
             var td = document.createElement('td');
             td.setAttribute("class", "artist_name");
-            td.setAttribute("title", "tags: " + found_users[i]["tags"].join(", ") + "<br/>genres: " + found_users[i]["genres"].join(", "));
+            td.setAttribute("title", found_users[i]["genres"].join(", "));
             td.innerHTML = "<a class=\"artist\" target=\"_blank\" href=\"" + found_users[i]["link"] + "\">" + found_users[i]["name"] + "</a>";
             row.appendChild(td);
             
             var td = document.createElement('td');
             td.setAttribute("class", "artist_info");
             td.innerHTML = found_users[i]["rank"];
+            row.appendChild(td);
+            
+            var td = document.createElement('td');
+            td.setAttribute("class", "artist_info");
+            td.innerHTML = found_users[i]["depth"];
             row.appendChild(td);
             
             var td = document.createElement('td');
@@ -433,8 +464,13 @@ function show(how) {
             row.appendChild(td);
             
             var td = document.createElement('td');
-            td.setAttribute("class", "track_age");
-            td.innerHTML = found_users[i]["track_age"];
+            td.setAttribute("class", "mta");
+            td.innerHTML = found_users[i]["mta"];
+            row.appendChild(td);
+            
+            var td = document.createElement('td');
+            td.setAttribute("class", "lta");
+            td.innerHTML = found_users[i]["lta"];
             row.appendChild(td);
              
             var td = document.createElement('td');
