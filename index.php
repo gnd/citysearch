@@ -1328,17 +1328,18 @@ else if(isset($_REQUEST["seek"])&&($_REQUEST["seek"] == 1)) {
     echo " <span id=\"search_status\"/></span>";
     
     echo "<div id=\"results\">";
+    echo "<br/><br/>";
     echo "\n\n<table style=\"border: 0px;\">\n";
     echo "<thead><tr>";
     echo "<th>hide</th>";
-    echo "<th id=\"th_name\" onclick=\"change_sorting('name')\" >name&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_rank\" onclick=\"change_sorting('rank')\">rank&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_depth\" onclick=\"change_sorting('depth')\">deppth&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_deg\" onclick=\"change_sorting('deg')\">degree&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_followers\" onclick=\"change_sorting('followers')\">followers&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_tracks\" onclick=\"change_sorting('tracks')\">tracks&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_mta\" onclick=\"change_sorting('mta')\" title=\"Median Track Age (days ago)\">mta&nbsp;&nbsp;&nbsp;</th>";
-    echo "<th id=\"th_lta\" onclick=\"change_sorting('lta')\" title=\"Last Track Age (days ago)\">lta&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_name\" onclick=\"change_sorting('name')\" class=\"sortable\" >name&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_rank\" onclick=\"change_sorting('rank')\" class=\"sortable\" >rank&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_depth\" onclick=\"change_sorting('depth')\" class=\"sortable\" >depth&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_deg\" onclick=\"change_sorting('deg')\" class=\"sortable\" >degree&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_followers\" onclick=\"change_sorting('followers')\" class=\"sortable\" >followers&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_tracks\" onclick=\"change_sorting('tracks')\" class=\"sortable\" >tracks&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_mta\" onclick=\"change_sorting('mta')\" class=\"sortable\" title=\"Median Track Age (days ago)\">mta&nbsp;&nbsp;&nbsp;</th>";
+    echo "<th id=\"th_lta\" onclick=\"change_sorting('lta')\" class=\"sortable\" title=\"Last Track Age (days ago)\">lta&nbsp;&nbsp;&nbsp;</th>";
     echo "<th>description</th></tr></thead>\n";
     echo "<tbody id=\"results_body\"></tbody></table>";
     echo "</div>";
