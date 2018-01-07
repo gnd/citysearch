@@ -65,6 +65,20 @@ function validate_int($input, $link) {
 }
 
 /**
+ * Sanitizes a input parameter of the type string
+ * 
+ * This basically makes sure the output ins xml-safe
+ * with a couple of things on top of it
+ *
+ * @param string $input input string
+ * @return Sanitized xml-safe input string
+ */
+function sanitize_for_xml($input) {
+    $input = strip_tags(addslashes($input));
+    return str_replace(array('&','>','<'), array('&amp;','&gt;','&lt;'), $s);
+}
+
+/**
  * Prints a single soundcloud track as embed
  *
  * @param string $uri Track uri from soundcloud
@@ -265,17 +279,17 @@ function display_user_results_xml($users, $duration) {
             
             echo "<user>\n";
                 echo "\t<id>".$id."</id>\n";
-                echo "\t<name>".str_replace("&", "&#038;",$name)."</name>\n";
+                echo "\t<name>".sanitize_for_xml($name)."</name>\n";
                 echo "\t<link>".$link."</link>\n";
                 echo "\t<tracks>".$tracks."</tracks>\n";
                 echo "\t<followers>".$followers."</followers>\n";
                 echo "\t<genres>\n";
-                foreach ($genres as $genre) { if ($genre != "") { echo "\t\t<genre>".str_replace("&", "&#038;",strip_tags(addslashes($genre)))."</genre>\n"; } }
+                foreach ($genres as $genre) { if ($genre != "") { echo "\t\t<genre>".sanitize_for_xml($genre)."</genre>\n"; } }
                 echo "\t</genres>\n";
                 echo "\t<median_age>".$median_age."</median_age>\n";
                 echo "\t<last_age>".$last_age."</last_age>\n";
                 echo "\t<listeners>".$listeners."</listeners>\n";
-                echo "\t<description>\n\t\t".str_replace("&", "&#038;", strip_tags(addslashes($description)))."\n\t</description>\n";
+                echo "\t<description>\n\t\t".sanitize_for_xml($description)."\n\t</description>\n";
                 echo "\t<degree>".$degree."</degree>\n";
                 echo "\t<depth>".$depth."</depth>\n";
             echo "</user>\n";
