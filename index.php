@@ -75,7 +75,7 @@ function validate_int($input, $link) {
  */
 function sanitize_for_xml($input) {
     $input = strip_tags(addslashes($input));
-    return str_replace(array('&','>','<'), array('&amp;','&gt;','&lt;'), $s);
+    return str_replace(array('&','>','<'), array('&amp;','&gt;','&lt;'), $input);
 }
 
 /**
