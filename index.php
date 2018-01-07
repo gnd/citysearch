@@ -254,13 +254,24 @@ function display_user_results($users) {
  * 
  * @param array $users results provided by the search
  */
-function display_user_results_xml($users, $duration) {
+function display_user_results_xml($users, $failed_users, $error_count, $duration) {
     
     // Output XML
     header('Content-Type: application/xml');
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     echo "<results>\n";
     echo "<duration>".$duration."</duration>\n";
+    echo "<errors>".$errors."</errors>\n";
+    
+    if (count($failed_users) > 0 ) {
+        echo "<failed_users>\n";
+        foreach ( $failed_users as $failed_user ) {
+            $id = $failed_user["id"];
+            echo "\t<failed_user>".$id."</failed_user>\n";
+        }
+        echo "</failed_users>\n";
+    }
+    
     if (count($users) > 0 ) {
         echo "<users>\n";
         foreach ( $users as $user ) {
@@ -589,7 +600,9 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
         $initial_seed_ids = $seed_ids;
         $found_ids = $seed_ids;
         $found_users = array();
+        $failed_users = array();
         $id_index = 0;
+        $error_count = 0;
         $before = microtime(true);
             
         for ($depth = 0; $depth <= $max_depth; $depth ++) {
@@ -600,24 +613,46 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                 $mydb->updateSessionProgress($_SESSION["user_data"]["id"], $id_index / count($seed_ids));
                 $offset = 0;
                     
-                $following = json_decode($soundcloud->get('users/' . $id . '/followings', array('limit' => $sc_page_limit, 'offset' => $offset)), true);
-                $next_href = $following["next_href"];
+                $user_failed = 0;
+                try {    
+                    $following = json_decode($soundcloud->get('users/' . $id . '/followings', array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+                    $next_href = $following["next_href"];
+                } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
+                    $user_failed = 1;
+                    $error_count++;
+                    error.log("Failed getting user data for id: " . $id . " : " . $e);
+                }
+                
+                // lets be bold and try again almost immediately
+                if ($user_failed > 0) {
+                    sleep(5);
+                    try {    
+                        $following = json_decode($soundcloud->get('users/' . $id . '/followings', array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+                        $next_href = $following["next_href"];
+                        $user_failed = 0;
+                    } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
+                        $failed_users[] = $id;
+                        $error_count++;
+                        error.log("Failed *again* getting user data for id: " . $id . " : " . $e);
+                    }
+                }
 
-                while (isset($next_href)) {
+                while (isset($next_href) && ($user_failed < 1) && ($href_failed < 1)) {
                     foreach ($following["collection"] as $followed) {
                         $city = strtolower($followed["city"]);
                         if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
                             
                             // get info on all users tracks
-                            $failed = 0;
+                            $track_failed = 0;
                             try {
                                 $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
                             } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
-                                error_log("Failed getting track data for id: " . $followed["id"] . " at " . $followed["permalink_url"]);
-                                $failed = 1;
+                                error_log("Failed getting track data for id: " . $followed["id"] . " at " . $followed["permalink_url"] . " : " . $e);
+                                $track_failed = 1;
+                                $error_count++;
                             }                                
                             
-                            if ((count($tracks) > 0 ) && ($failed < 1)) {
+                            if ((count($tracks) > 0 ) && ($track_failed < 1)) {
                                 $track_genre = array();
                                 $track_tags = array();
                                 $track_times = array();
@@ -664,7 +699,7 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                                         $valid_user_data["degree"] = 0;
                                         $valid_user_data["depth"] = $depth+1;
                                         $found_users[$followed["id"]] = $valid_user_data;
-                                    } else { //if (!in_array($followed["id"], $initial_seed_ids)) {
+                                    } else { 
                                         if (!isset($found_users[$followed["id"]]["degree"])) {
                                             $found_users[$followed["id"]]["degree"] = 0;
                                         } else {
@@ -676,26 +711,46 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                         }
                     }
                     $offset += $sc_page_limit;
-                    $following = json_decode($soundcloud->get($next_href, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
-                    $next_href = $following["next_href"];
+                    $href_failed = 0;
+                    try {
+                        $following = json_decode($soundcloud->get($next_href, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+                        $next_href = $following["next_href"];
+                    } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
+                        error_log("Failed getting next_href for id: " . $followed["id"] . " at " . $followed["permalink_url"] . " : " . $e);
+                        $href_failed = 1;
+                        $error_count++;
+                    }
+                    
+                    // lets try again to make sure
+                    if ($href_failed > 0) {
+                        try {
+                            $following = json_decode($soundcloud->get($next_href, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+                            $next_href = $following["next_href"];
+                            $href_failed = 0;
+                        } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
+                            error_log("Failed *again* getting next_href for id: " . $followed["id"] . " at " . $followed["permalink_url"] . " : " . $e);
+                            $error_count++;
+                        }
+                    }
                 }
                     
                 // finish the rest of the users
-                if ( !$next_href ) {
+                if ( !$next_href && ($user_failed < 1) ) {
                     foreach ($following["collection"] as $followed) {
                         $city = strtolower($followed["city"]);
                         if ( ($followed['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
                             
                             // get info on all users tracks
-                            $failed = 0;
+                            $track_failed = 0;
                             try {
                                 $tracks = json_decode($soundcloud->get('users/' . $followed["id"] . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
                             } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
-                                error_log("Failed getting track data for id: " . $followed["id"] . " at " . $followed["permalink_url"]);
-                                $failed = 1;
+                                error_log("Failed getting track data for id: " . $followed["id"] . " at " . $followed["permalink_url"] . " : " . $e);
+                                $track_failed = 1;
+                                $error_count++;
                             } 
                             
-                            if ((count($tracks) > 0 ) && ($failed < 1)) {
+                            if ((count($tracks) > 0 ) && ($track_failed < 1)) {
                                 $track_genre = array();
                                 $track_tags = array();
                                 $track_times = array();
@@ -742,7 +797,7 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
                                         $valid_user_data["degree"] = 0;
                                         $valid_user_data["depth"] = $depth+1;
                                         $found_users[$followed["id"]] = $valid_user_data;
-                                    } else { //if (!in_array($followed["id"], $initial_seed_ids)) {
+                                    } else { 
                                         if (!isset($found_users[$followed["id"]]["degree"])) {
                                             $found_users[$followed["id"]]["degree"] = 0;
                                         } else {
@@ -764,26 +819,49 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
             }
         }
         
+        // include also the initial seed in the search 
         $mydb->updateSessionStatus($_SESSION["user_data"]["id"], 'initial', 0, 0);
         $id_index = 0;
-        // lastly include also the initial seed
         foreach ($initial_seed_ids as $id) {
             $id_index += 1;
             $mydb->updateSessionProgress($_SESSION["user_data"]["id"], $id_index / count($seed_ids));
             $offset = 0;
-            $user = json_decode($soundcloud->get('users/' . $id, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+            $user_failed = 0;
+            
+            try {
+                $user = json_decode($soundcloud->get('users/' . $id, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+            } catch(Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
+                    $user_failed = 1;
+                    $error_count++;
+                    error.log("Failed getting user data for initial id: " . $id . " : " . $e);
+            }
+            
+            // try again
+            if ($user_failed > 0) {
+                sleep(5);
+                try {
+                    $user = json_decode($soundcloud->get('users/' . $id, array('limit' => $sc_page_limit, 'offset' => $offset)), true);
+                    $user_failed = 0;
+                } catch(Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
+                    $failed_users[] = $id;
+                    $error_count++;
+                    error.log("Failed *again* getting user data for initial id: " . $id . " : " . $e);
+                }
+            }
+            
             $city = strtolower($user["city"]);
-            if ( ($user['track_count'] > 0) && (strpos($city, $qcity) !== false) ) {
+            if ( ($user['track_count'] > 0) && (strpos($city, $qcity) !== false) && ($user_failed < 1)) {
                 // get info on all users tracks
-                $failed = 0;
+                $track_failed = 0;
                 try {
                     $tracks = json_decode($soundcloud->get('users/' . $id . '/tracks', array('limit' => $sc_page_limit, 'offset' => 0)), true);
                 } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
-                    error_log("Failed getting track data for id: " . $id . " at " . $user["permalink_url"]);
-                    $failed = 1;
+                    error_log("Failed getting track data for id: " . $id . " at " . $user["permalink_url"] . " : " . $e);
+                    $track_failed = 1;
+                    $error_count++;
                 } 
                 
-                if ((count($tracks) > 0 ) && ($failed < 1)) {
+                if ((count($tracks) > 0 ) && ($track_failed < 1)) {
                     $track_genre = array();
                     $track_tags = array();
                     $track_times = array();
@@ -836,7 +914,7 @@ else if ( isset($_REQUEST["seekxml"]) && ($_REQUEST["seekxml"] != 0) ) {
         $mydb->updateSessionStatus($_SESSION["user_data"]["id"], 0, 0, 0);
         
         // show them
-        display_user_results_xml($found_users, microtime(true) - $before);
+        display_user_results_xml($found_users, $failed_users, $error_count, microtime(true) - $before);
         
     } else {
         //echo "No users from $city currently followed";

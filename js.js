@@ -13,6 +13,7 @@ var max_followers = 0;
 var max_listeners = 0;
 var max_degree = 0;
 var duration = 0;
+var errors = 0;
 var search_progress_check;
 var search_progress_refresh_period = 500;
 var uid = 0;
@@ -272,7 +273,13 @@ function processResponse() {
     show(how);
         
     // update search status
-    document.getElementById("search_status").innerHTML = found_users.length + " users found in " + Number(duration).toFixed(2) + " seconds";
+    var error_string = "";
+    if (errors > 0) {
+        error_string = "with " + errors + " errors.";
+    } else {
+        error_string = "without errors.";
+    }
+    document.getElementById("search_status").innerHTML = found_users.length + " users found in " + Number(duration).toFixed(2) + " seconds " + error_string;
     document.getElementById("search_status").style.backgroundColor = "#60fd6b";
 }
 
@@ -344,6 +351,7 @@ function process_xml(xmlDoc) {
     
     // get duration
     duration = xmlDoc.getElementsByTagName("duration")[0].textContent;
+    errors = xmlDoc.getElementsByTagName("errors")[0].textContent;
     
     // populate found users array
     var users = xmlDoc.getElementsByTagName("user");
