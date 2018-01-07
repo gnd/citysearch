@@ -3,7 +3,7 @@ var cities; // the php $_SESSION["cities"] array created at first login
 var found_users;
 var search_status;
 
-
+var MAX_DEPTH = 6;
 var DESC_SIZE = 200;
 var how = "rank_d"
 var show_seen = false;
@@ -195,10 +195,6 @@ function process_status_xml(xmlDoc) {
 // load citysearch (seek) from XML
 function seekxml() {
     
-    // indicate search status
-    document.getElementById("search_status").innerHTML = "searching ..";
-    document.getElementById("search_status").style.backgroundColor = "#ed6359";
-    
     // prepare a clean tbody
     var tbody = document.getElementById("results_body");
     while (tbody.firstChild) {
@@ -221,7 +217,7 @@ function seekxml() {
         if (cities.indexOf(city) != -1) {
             if (depth) {
                 if (isNumeric(depth)) {
-                    if (depth < 5) {
+                    if (depth < MAX_DEPTH) {
                         verify = true;
                     } else {
                         alert("Depth " + depth + " too big");
@@ -241,6 +237,10 @@ function seekxml() {
     
     // if verify, run
     if (verify) {
+        // indicate search status
+        document.getElementById("search_status").innerHTML = "searching ..";
+        document.getElementById("search_status").style.backgroundColor = "#ed6359";
+    
         // setup params
         var params = "seekxml=1";
         params += "&" + "seek_city" + "=" + encodeURIComponent(city);
