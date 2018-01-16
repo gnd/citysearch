@@ -9,7 +9,7 @@
  * https://github.com/mptre/php-soundcloud
  * 
  *
- * 2012 - 2017, gnd
+ * 2012 - 2018, gnd
  *
  */
 
