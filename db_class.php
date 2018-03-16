@@ -5,14 +5,14 @@
  *
  * An open source application to mine users from Soundcloud
  *
- * This is based on php-soundcloud available at 
+ * This is based on php-soundcloud available at
  * https://github.com/mptre/php-soundcloud
- * 
+ *
  *
  * 2012 - 2018, gnd
  *
  */
- 
+
 class db {
     var $link;
     var $prfx;
@@ -22,11 +22,11 @@ class db {
         $this->db = new mysqli($db_host, $db_user, $db_pass, $db_name);
         $this->prfx = $db_prfx;
     }
-    
+
     function close() {
         $this->db->close();
     }
-    
+
     function addIgnore($uid, $iid) {
         $result = $this->db->query("INSERT INTO " . $this->prfx . "_ignores VALUES(0, $uid, $iid)");
         return $result;
@@ -86,58 +86,62 @@ class db {
         $result = $this->db->query("SELECT id, country, alias FROM " . $this->prfx . "_country_alias WHERE uid = $uid");
         return $result;
     }
-    
+
     // create table ed_sess_status ( id int AUTO_INCREMENT PRIMARY KEY, uid int, status varchar(10), curr_dep int, max_dep int);
     function updateSessionStatus($uid, $status, $current_depth, $max_depth) {
         $result = $this->db->query("INSERT INTO " . $this->prfx . "_sess_status VALUES(0, $uid, '$status', $current_depth, $max_depth)");
         return $result;
     }
-    
+
     // create table ed_sess_progress ( id int AUTO_INCREMENT PRIMARY KEY, uid int, progress int);
     function updateSessionProgress($uid, $progress) {
         $result = $this->db->query("INSERT INTO " . $this->prfx . "_sess_progress VALUES(0, $uid, ".(int)(100*$progress).")");
         return $result;
     }
-    
+
     function getSessionStatus($uid) {
         $result = $this->db->query("SELECT status, curr_dep, max_dep FROM " . $this->prfx . "_sess_status WHERE uid = $uid ORDER BY id DESC LIMIT 1");
         return $result;
     }
-    
+
     function getSessionProgress($uid) {
         $result = $this->db->query("SELECT progress FROM " . $this->prfx . "_sess_progress WHERE uid = $uid ORDER BY id DESC LIMIT 1");
         return $result;
     }
-    
+
     function clearSessionStatus($uid) {
         $result = $this->db->query("DELETE FROM " . $this->prfx . "_sess_status WHERE uid = $uid");
         return $result;
     }
-    
+
     function clearSessionProgress($uid) {
         $result = $this->db->query("DELETE FROM " . $this->prfx . "_sess_progress WHERE uid = $uid");
         return $result;
     }
-    
+
     // create table ed_user ( uid int AUTO_INCREMENT PRIMARY KEY, username varchar(80), passwd varchar(80), sid int(11), enabled int(11), changed timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP);
     function getUserPass($username) {
         $result = $this->db->query("SELECT passwd FROM " . $this->prfx . "_user WHERE username = '$username' and enabled = 1 LIMIT 1");
         return $result;
     }
-    
+
     function getUserData($username) {
         $result = $this->db->query("SELECT uid, username, sid, enabled, changed FROM " . $this->prfx . "_user WHERE username = '$username' LIMIT 1");
         return $result;
     }
-    
+
     function getUsers() {
         $result = $this->db->query("SELECT uid, username, sid, enabled, changed FROM " . $this->prfx . "_user");
         return $result;
     }
-    
+
     function createUser($username, $hash, $sid) {
         $result = $this->db->query("INSERT into " . $this->prfx . "_user VALUES(0, '$username','$hash', $sid, 1, now())");
         return $result;
+    }
+
+    function updateUserPass() {
+        
     }
 
 }

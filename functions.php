@@ -5,19 +5,19 @@
  *
  * An open source application to mine users from Soundcloud
  *
- * This is based on php-soundcloud available at 
+ * This is based on php-soundcloud available at
  * https://github.com/mptre/php-soundcloud
- * 
+ *
  *
  * 2012 - 2018, gnd
  *
  */
- 
- 
- 
- 
 
- 
+
+
+
+
+
 /**
  * Sanitizes a input parameter of the type string
  *
@@ -30,7 +30,7 @@ function validate_str($input, $link) {
 
 /**
  * Sanitizes a input parameter of the type int
- * 
+ *
  * If the input is not a number, execution is halted
  *
  * @param string $input input integer
@@ -47,7 +47,7 @@ function validate_int($input, $link) {
 
 /**
  * Sanitizes a input parameter of the type string
- * 
+ *
  * This basically makes sure the output ins xml-safe
  * with a couple of things on top of it
  *
@@ -62,7 +62,7 @@ function sanitize_for_xml($input) {
 
 /**
  * Checks if user logged into Soundcloud
- * 
+ *
  * This is just a wrapper that checks if:
  * - the user is logged
  * - the user is logged into SoundCloud
@@ -121,10 +121,10 @@ function filterform_userstalk($user, $city, $limit, $ignore) {
 
 /**
  * Prints a form to add a new city alias
- * 
+ *
  *
  * @param string $city a maligned city name that is fond in results
- * @param string $alias alias, in this case the real name of the city 
+ * @param string $alias alias, in this case the real name of the city
  */
 function cityalias($city, $alias) {
     echo "<form action=\"index.php?cityalias=1\" method=\"post\">\n";
@@ -136,10 +136,10 @@ function cityalias($city, $alias) {
 
 /**
  * Prints a form to add a new country alias
- * 
+ *
  *
  * @param string $country a maligned country name that is fond in results
- * @param string $alias alias, in this case the real name of the country 
+ * @param string $alias alias, in this case the real name of the country
  */
 function countryalias($country, $alias) {
     echo "<form action=\"index.php?countryalias=1\" method=\"post\">\n";
@@ -151,12 +151,13 @@ function countryalias($country, $alias) {
 
 
 /**
- * Prints the HTML page top and navigatio menu
- * 
+ * Prints the HTML page top and navigation menu
+ *
  */
 function user_pagetop($dev_version) {
     echo "<html><head>\n";
     echo "<link href=\"citysearch.css\" rel=\"stylesheet\" type=\"text/css\" />\n";
+    echo "<script type=\"text/javascript\" src=\"user.js\"></script>\n";
     echo "<title>citysearch</title>\n";
     echo "</head><body>\n";
     echo "<div class=\"main\" style=\"width: 800px;\">\n";
@@ -177,8 +178,8 @@ function user_pagetop($dev_version) {
 }
 
 /**
- * Prints the HTML page top and navigatio menu
- * 
+ * Prints the HTML page top and navigation menu
+ *
  */
 function pagetop($dev_version) {
     echo "<html><head>\n";
@@ -209,8 +210,8 @@ function pagetop($dev_version) {
 
 /**
  * Prints a cityserach user
- * 
- * 
+ *
+ *
  */
 function display_user_data($line) {
     echo "<tr><td>". $line["username"] ." <a href=index.php?edituser=". $line["uid"] .">edit</a> <a href=index.php?deluser=". $line["uid"] .">del</a> </td><td></td></tr>\n";
@@ -218,9 +219,9 @@ function display_user_data($line) {
 
 /**
  * Prints found users into a table
- * 
+ *
  * This first checks whether a user is in ignored (and later also seen) users
- * 
+ *
  * @param array $users results provided by the search
  */
 function display_user_results($users) {
@@ -254,19 +255,19 @@ function display_user_results($users) {
 
 /**
  * Outputs found users as a XML
- * 
- * 
+ *
+ *
  * @param array $users results provided by the search
  */
 function display_user_results_xml($users, $failed_users, $error_count, $duration) {
-    
+
     // Output XML
     header('Content-Type: application/xml');
     echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     echo "<results>\n";
     echo "<duration>".$duration."</duration>\n";
     echo "<errors>".$error_count."</errors>\n";
-    
+
     if (count($failed_users) > 0 ) {
         echo "<failed_users>\n";
         foreach ( $failed_users as $failed_user ) {
@@ -275,7 +276,7 @@ function display_user_results_xml($users, $failed_users, $error_count, $duration
         }
         echo "</failed_users>\n";
     }
-    
+
     if (count($users) > 0 ) {
         echo "<users>\n";
         foreach ( $users as $user ) {
@@ -291,7 +292,7 @@ function display_user_results_xml($users, $failed_users, $error_count, $duration
             $listeners = $user["listeners_count"];
             $degree = $user["degree"];
             $depth = $user["depth"];
-            
+
             echo "<user>\n";
                 echo "\t<id>".$id."</id>\n";
                 echo "\t<name>".sanitize_for_xml($name)."</name>\n";
@@ -317,10 +318,10 @@ function display_user_results_xml($users, $failed_users, $error_count, $duration
 
 
 /**
- * Show login form 
- * 
+ * Show login form
+ *
  * This prints a login form
- * 
+ *
  */
 function login_form() {
     echo "<form action=\"index.php\" method=\"post\">\n";
@@ -338,10 +339,10 @@ function login_form() {
 }
 
 /**
- * Show add user form 
- * 
+ * Show add user form
+ *
  * This prints a form to add users
- * 
+ *
  */
 function add_user_form() {
     echo "<form action=\"index.php?adduser=1\" method=\"post\">\n";
@@ -360,15 +361,57 @@ function add_user_form() {
     echo "<br>\n";
     echo "<input type=\"submit\" value=\"Create\">\n";
     echo "</td>\n";
-    echo "</tr>\n"; 
+    echo "</tr>\n";
     echo "</table>\n";
-    echo "</form>\n";  
+    echo "</form>\n";
+}
+
+
+/**
+ * Show edit user form
+ *
+ * This prints a form to edit user(s)
+ *
+ */
+function edit_user_form($username, $uid, $enabled) {
+    if ($_SESSION["user_data"]["sid"] > 0) {
+        echo "\t<br/>\n";
+        echo "\t<form action=\"index.php?edituser=1\" method=\"post\">\n";
+        echo "\t\t<table border=\"0\" cellpadding=\"20\" cellspacing=\"0\">\n";
+        echo "\t\t\t<tr >\n";
+        echo "\t\t\t\t<td class=\"btext\">Edit " . $username;
+        echo "<br/><br/>\n";
+        echo "\t\t\t</tr>\n";
+        echo "\t\t\t<tr >\n";
+        echo "\t\t\t\t<td class=\"text\">name<br>\n";
+        echo "\t\t\t\t\t<input name=\"uid\" type=\"hidden\" value=\"" . $uid . "\">\n";
+        echo "\t\t\t\t\t<input name=\"name\" type=\"text\" value=\"" . $username . "\" readonly><br>\n";
+        echo "\t\t\t\t\told password<br>\n";
+        echo "\t\t\t\t\t<input name=\"oldpass\" type=\"password\" >\n";
+        echo "\t\t\t\t\t<br>\n";
+        echo "\t\t\t\t\tnew password (length at least 10 chars, MUST contain at least one: special character, number, big letter, small letter)<br>\n";
+        echo "\t\t\t\t\t<input name=\"newpass_1\" type=\"password\" >\n";
+        echo "\t\t\t\t\t<br>\n";
+        echo "\t\t\t\t\tconfirm new password<br>\n";
+        echo "\t\t\t\t\t<input name=\"newpass_2\" type=\"password\" >\n";
+        echo "\t\t\t\t\t<br>\n";
+        if ($_SESSION["usersid"] > 1) {
+            echo "\t\t\t\t\tEnabled \n";
+            echo "\t\t\t\t\t<input name=\"enabled\" type=\"checkbox\" " . $enabled ."><br>\n";
+            echo "\t\t\t\t\t<br><br/>\n";
+        }
+        echo "\t\t\t\t\t<input type=\"submit\" onclick=\"edituser()\" value=\"Edit\">\n";
+        echo "\t\t\t\t</td>\n";
+        echo "\t\t\t</tr>\n";
+        echo "\t\t</table>\n";
+        echo "\t</form>\n";
+    }
 }
 
 /**
  * Create a PBKDF2 hash
- * 
- * 
+ *
+ *
  */
 function pw_crypt($str,$salt) {
    $algo = 'sha256';
@@ -377,9 +420,9 @@ function pw_crypt($str,$salt) {
 }
 
 /**
- * Get a random salt for PBKDF2 hash generation 
- * 
- * 
+ * Get a random salt for PBKDF2 hash generation
+ *
+ *
  */
 function pw_salt() {
    $salt = bin2hex(mcrypt_create_iv(8, MCRYPT_DEV_URANDOM));
@@ -388,7 +431,7 @@ function pw_salt() {
 
 /**
  * Check if password valid
- * 
+ *
  */
 function check_pwd($recv_pwd, $stor_pwd) {
     $result = false;
@@ -401,7 +444,7 @@ function check_pwd($recv_pwd, $stor_pwd) {
 
 /**
  * Return a PBKDF2 hash
- * 
+ *
  */
 function get_pwd_hash($pwd) {
     if (isset($pwd)) {
@@ -416,8 +459,8 @@ function get_pwd_hash($pwd) {
 
 /**
  * Sorts arrays according to how many elements they have
- * 
- * 
+ *
+ *
  * @param array $arrays
  */
 function sort_by_length($arrays) {
@@ -455,7 +498,7 @@ function seems_utf8($str) {
         elseif(($c &0xFE)== 0xFC)
             $n = 5;
         # 1111110b
-        else 
+        else
             return false;
         # Does not match any model
         for($j = 0;
@@ -669,14 +712,14 @@ function remove_accents($string) {
         $string = strtr($string, $chars);
     } else {
         // Assume ISO-8859-1 if not UTF-8
-        $chars['in'] = chr(128). chr(131). chr(138). chr(142). chr(154). chr(158). chr(159). chr(162). 
-                        chr(165). chr(181). chr(192). chr(193). chr(194). chr(195). chr(196). chr(197). 
-                        chr(199). chr(200). chr(201). chr(202). chr(203). chr(204). chr(205). chr(206). 
-                        chr(207). chr(209). chr(210). chr(211). chr(212). chr(213). chr(214). chr(216). 
-                        chr(217). chr(218). chr(219). chr(220). chr(221). chr(224). chr(225). chr(226). 
-                        chr(227). chr(228). chr(229). chr(231). chr(232). chr(233). chr(234). chr(235). 
-                        chr(236). chr(237). chr(238). chr(239). chr(241). chr(242). chr(243). chr(244). 
-                        chr(245). chr(246). chr(248). chr(249). chr(250). chr(251). chr(252). chr(253). 
+        $chars['in'] = chr(128). chr(131). chr(138). chr(142). chr(154). chr(158). chr(159). chr(162).
+                        chr(165). chr(181). chr(192). chr(193). chr(194). chr(195). chr(196). chr(197).
+                        chr(199). chr(200). chr(201). chr(202). chr(203). chr(204). chr(205). chr(206).
+                        chr(207). chr(209). chr(210). chr(211). chr(212). chr(213). chr(214). chr(216).
+                        chr(217). chr(218). chr(219). chr(220). chr(221). chr(224). chr(225). chr(226).
+                        chr(227). chr(228). chr(229). chr(231). chr(232). chr(233). chr(234). chr(235).
+                        chr(236). chr(237). chr(238). chr(239). chr(241). chr(242). chr(243). chr(244).
+                        chr(245). chr(246). chr(248). chr(249). chr(250). chr(251). chr(252). chr(253).
                         chr(255);
         $chars['out'] = "EfSZszYcYuAAAAAACEEEEIIIINOOOOOOUUUUYaaaaaaceeeeiiiinoooooouuuuyy";
         $string = strtr($string, $chars['in'], $chars['out']);
