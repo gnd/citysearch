@@ -345,7 +345,6 @@ function login_form() {
  *
  */
 function add_user_form() {
-    echo "<form action=\"index.php?adduser=1\" method=\"post\">\n";
     echo "<table border=\"0\" cellspacing=\"0\">\n";
     echo "<tr >\n";
     echo "<td class=\"btext\">Create new user<br/><br/>\n";
@@ -353,17 +352,13 @@ function add_user_form() {
     echo "<tr >\n";
     echo "<td class=\"text\">name<br>\n";
     echo "<input name=\"newname\" type=\"text\"><br>\n";
-    echo "password <br>\n";
-    echo "<input name=\"newpass_1\" type=\"password\" >\n";
+    echo "mail <br>\n";
+    echo "<input name=\"newmail\" type=\"text\" >\n";
     echo "<br>\n";
-    echo "confirm password<br>\n";
-    echo "<input name=\"newpass_2\" type=\"password\" >\n";
-    echo "<br>\n";
-    echo "<input type=\"submit\" value=\"Create\">\n";
+    echo "<input type=\"submit\" onclick=\"adduser()\" value=\"Create\">\n";
     echo "</td>\n";
     echo "</tr>\n";
     echo "</table>\n";
-    echo "</form>\n";
 }
 
 
@@ -373,38 +368,37 @@ function add_user_form() {
  * This prints a form to edit user(s)
  *
  */
-function edit_user_form($username, $uid, $enabled) {
+function edit_user_form($username, $uid, $enabled, $self) {
     if ($_SESSION["user_data"]["sid"] > 0) {
-        echo "\t<br/>\n";
-        echo "\t<form action=\"index.php?edituser=1\" method=\"post\">\n";
+        //echo "\t<br/>\n";
         echo "\t\t<table border=\"0\" cellpadding=\"20\" cellspacing=\"0\">\n";
+        if (!$self && $_SESSION["user_data"]["sid"] > 1) {
+            echo "\t\t\t<tr >\n";
+            echo "\t\t\t\t<td class=\"btext\">Edit " . $username;
+            echo "\t\t\t</tr>\n";
+        }
         echo "\t\t\t<tr >\n";
-        echo "\t\t\t\t<td class=\"btext\">Edit " . $username;
-        echo "<br/><br/>\n";
-        echo "\t\t\t</tr>\n";
-        echo "\t\t\t<tr >\n";
-        echo "\t\t\t\t<td class=\"text\">name<br>\n";
-        echo "\t\t\t\t\t<input name=\"uid\" type=\"hidden\" value=\"" . $uid . "\">\n";
-        echo "\t\t\t\t\t<input name=\"name\" type=\"text\" value=\"" . $username . "\" readonly><br>\n";
+        echo "\t\t\t\t<td class=\"text\">\n";// name<br>\n";
+        echo "\t\t\t\t\t<input id=\"uid\" type=\"hidden\" value=\"" . $uid . "\">\n";
+        echo "\t\t\t\t\t<input id=\"name\" type=\"hidden\" value=\"" . $username . "\" readonly><br>\n";
         echo "\t\t\t\t\told password<br>\n";
-        echo "\t\t\t\t\t<input name=\"oldpass\" type=\"password\" >\n";
+        echo "\t\t\t\t\t<input id=\"oldpass\" type=\"password\" >\n";
         echo "\t\t\t\t\t<br>\n";
         echo "\t\t\t\t\tnew password (length at least 10 chars, MUST contain at least one: special character, number, big letter, small letter)<br>\n";
-        echo "\t\t\t\t\t<input name=\"newpass_1\" type=\"password\" >\n";
+        echo "\t\t\t\t\t<input id=\"newpass_1\" type=\"password\" >\n";
         echo "\t\t\t\t\t<br>\n";
         echo "\t\t\t\t\tconfirm new password<br>\n";
-        echo "\t\t\t\t\t<input name=\"newpass_2\" type=\"password\" >\n";
+        echo "\t\t\t\t\t<input id=\"newpass_2\" type=\"password\" >\n";
         echo "\t\t\t\t\t<br>\n";
-        if ($_SESSION["usersid"] > 1) {
+        if (!$self && $_SESSION["user_data"]["sid"] > 1) {
             echo "\t\t\t\t\tEnabled \n";
-            echo "\t\t\t\t\t<input name=\"enabled\" type=\"checkbox\" " . $enabled ."><br>\n";
+            echo "\t\t\t\t\t<input id=\"enabled\" type=\"checkbox\" " . $enabled ."><br>\n";
             echo "\t\t\t\t\t<br><br/>\n";
         }
         echo "\t\t\t\t\t<input type=\"submit\" onclick=\"edituser()\" value=\"Edit\">\n";
         echo "\t\t\t\t</td>\n";
         echo "\t\t\t</tr>\n";
         echo "\t\t</table>\n";
-        echo "\t</form>\n";
     }
 }
 
@@ -454,6 +448,41 @@ function get_pwd_hash($pwd) {
     } else {
         die("Password cant be NULL");
     }
+}
+
+
+/**
+ * Return a PBKDF2 hash for invites & forgotten passwords
+ *
+ */
+function get_url_hash($data) {
+    if (isset($data)) {
+        $salt = pw_salt();
+        $hash = $salt . pw_crypt($pwd, $salt);
+        return substr(str_replace("$", "", $hash), 0, 16);
+    } else {
+        die("Please provide some data for hashing");
+    }
+}
+
+
+/**
+ * Send email to given mail address
+ *
+ */
+function send_mail($from, $to, $subject, $body) {
+    $headers =  "MIME-Version: 1.0\n" .
+                "Content-type: text/html; charset=iso-8859-2\n" .
+                "From: " . $from . "\n" .
+                "Reply-To: " . $from . "\n" .
+                "Date: ".date("r")."\n".
+                "Return-Path: <" .$from . ">\n" .
+                "User-Agent: PHP v".phpversion(). "\n" .
+                "X-Mailer: PHP v".phpversion(). "\n" .
+                "X-Priority: 3";
+
+    $result = mail($to, $subject, $body, $headers);
+    return $result;
 }
 
 

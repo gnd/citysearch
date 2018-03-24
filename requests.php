@@ -276,43 +276,52 @@ if ((isset($_REQUEST["adduser"])) && ($_SESSION["user_data"]["sid"] > 1)) {
 	$ok = true;
 
 	$newname = validate_str($_POST["newname"], $mydb->db);
-	$newpass_1 = validate_str($_POST["newpass_1"], $mydb->db);
-	$newpass_2 = validate_str($_POST["newpass_2"], $mydb->db);
-	$sid = 1;
+	$newmail = validate_str($_POST["newpass_1"], $mydb->db);
+	$sid = 1; // hardcoded for the time being
 
 	if ($newname != "") {
-		if (strcmp($newpass_1,$newpass_2) == 0) {
-			if (strcmp($newpass_1,"") != 0) {
-                $hash = get_pwd_hash($newpass_1);
-				$mydb->createUser($newname, $hash, $sid);
-			} else {
-				$ok = false;
-				echo "<h1>Password cant be empty. Go <a href=index.php?admin=1>back</a>";
-			}
-		} else {
-			$ok = false;
-			echo "<h1>Passwords dont match. Go <a href=index.php?admin=1>back</a>";
-		}
+        if ($newmail != "") {
+        } else {
+            $ok = false;
+            header('Content-Type: application/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+            echo "<result>\n";
+            echo "\t<code>0</code>\n";
+            echo "\t<reason>Incorrect mail.</reason>\n";
+            echo "</result>";
+            die();
+        }
 	} else {
 		$ok = false;
-		echo "Name cant be empty. Go <a href=index.php?admin=1>back</a>";
+        header('Content-Type: application/xml');
+        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        echo "<result>\n";
+        echo "\t<code>0</code>\n";
+        echo "\t<reason>Name cant be empty.</reason>\n";
+        echo "</result>";
+        die();
 	}
 
 	if ($ok) {
-		header('Location: index.php?usercreated='.$newname);
+        // Add user
+        $mydb->createUser($newname, $newmail, $sid);
+        // Generate invite code substr(hash username + mail + salt)
+        $hash = get_url_hash($newname . $newmail);
+        $url = $SITE_URL + "/index.php?new=" + $hash;
+        // Create invite hash
+        $mydb->createInviteHash($newuid, $newname, $hash);
+        // Now send invitation mail
+        send_mail("citysearch@easterndaze.net", $newmail, "Welcome to Citysearch", "")
+
+        // Announce result
+        header('Content-Type: application/xml');
+        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        echo "<result>\n";
+        echo "\t<code>1</code>\n";
+        echo "\t<reason>User successfully invited</reason>\n";
+        echo "</result>";
+        die();
 	}
-}
-
-
-/**
- * If new user created
- *
- */
-if ((isset($_REQUEST["usercreated"])) && ($_SESSION["user_data"]["sid"] > 0)) {
-
-	$name = validate_str($_REQUEST["usercreated"]);
-    echo "User $name created";
-	echo "<br/><a href=index.php>ok</a>";
 }
 
 
@@ -324,19 +333,18 @@ if ((isset($_REQUEST["edituser"])) && ($_SESSION["user_data"]["sid"] > 0)) {
 
 	$ok = true;
 
-	$uid = validate_int($_POST["uid"], $mydb->db);
-	$name = validate_str($_POST["newname"], $mydb->db);
-	$gid = validate_int($_POST["newgid"], $mydb->db);
+    // TODO - change request back to post
+	$uid = validate_int($_REQUEST["uid"], $mydb->db);
 	$enabled = 0;
 
-	if ((isset($_POST["enabled"])) && ($_POST["enabled"] != "")) {
-		if (strcmp($_POST["enabled"],"on") == 0) {
+	if ((isset($_REQUEST["enabled"])) && ($_REQUEST["enabled"] != "")) {
+		if (strcmp($_REQUEST["enabled"],"on") == 0) {
 			$enabled = 1;
 		}
 	}
 
 	// User editing himself
-	if (($uid == $_SESSION["user_data"]["id"]) && ($_SESSION["user_data"]["sid"] == 1)) {
+	if (($uid == $_SESSION["user_data"]["id"]) && ($_SESSION["user_data"]["sid"] > 1)) {
 
         // check if we have username
         $username = $_SESSION["user_data"]["name"];
@@ -346,10 +354,10 @@ if ((isset($_REQUEST["edituser"])) && ($_SESSION["user_data"]["sid"] > 0)) {
         }
 
         // change pass if all ok
-        if ((isset($_POST["newpass_1"])) && ($_POST["newpass_1"] != "")) {
-            $newpass_1 = validate_str($_POST["newpass_1"], $mydb->db);
-            $newpass_2 = validate_str($_POST["newpass_2"], $mydb->db);
-			$oldpass = validate_str($_POST["oldpass"], $mydb->db);
+        if ((isset($_REQUEST["newpass_1"])) && ($_REQUEST["newpass_1"] != "")) {
+            $newpass_1 = validate_str($_REQUEST["newpass_1"], $mydb->db);
+            $newpass_2 = validate_str($_REQUEST["newpass_2"], $mydb->db);
+			$oldpass = validate_str($_REQUEST["oldpass"], $mydb->db);
 
             // pull out stor_pass from the db
             $data = $mydb->getUserPass($username);
@@ -360,57 +368,82 @@ if ((isset($_REQUEST["edituser"])) && ($_SESSION["user_data"]["sid"] > 0)) {
 			if (check_pwd($oldpass, $stor_pass)) {
 				if (strcmp($newpass_1,$newpass_2) == 0) {
 					if (strcmp($oldpass,$newpass_1) != 0) {
-                        // if ($passres[0] == 1) {//TODO: only as JS (password strength)
+                        // if ($passres[0] == 1) {//TODO: do as PHP too
                         $hash = get_pwd_hash($newpass_1);
 						$mydb->updateUserPass($uid, $hash);
 					} else {
 						$ok = false;
-                        echo "<h1>old pass is a no no</h1><br/>go <a href=index.php?edituser=".$uid.">back</a>"; //TODO: also as JS
+                        //echo "<h1>old pass is a no no</h1><br/>go <a href=index.php?edituser=".$uid.">back</a>";
+                        // Output XML
+                        header('Content-Type: application/xml');
+                        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+                        echo "<result>\n";
+                        echo "\t<code>0</code>\n";
+                        echo "\t<reason>New password the same as old</reason>\n";
+                        echo "</result>";
+                        die();
 					}
 				} else {
 					$ok = false;
-					echo "<h1>Passwords dont match</h1><br/>go <a href=index.php?edituser=".$uid.">back</a>"; //TODO: also as JS
+					//echo "<h1>Passwords dont match</h1><br/>go <a href=index.php?edituser=".$uid.">back</a>";
+                    // Output XML
+                    header('Content-Type: application/xml');
+                    echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+                    echo "<result>\n";
+                    echo "\t<code>0</code>\n";
+                    echo "\t<reason>Passwords dont match</reason>\n";
+                    echo "</result>";
+                    die();
 				}
 			} else {
 				$ok = false;
-				echo "<h1>Wrong password</h1><br/>go <a href=index.php?edituser=".$uid.">back</a>";
+				//echo "<h1>Wrong password</h1><br/>go <a href=index.php?edituser=".$uid.">back</a>";
+                // Output XML
+                header('Content-Type: application/xml');
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+                echo "<result>\n";
+                echo "\t<code>0</code>\n";
+                echo "\t<reason>Bad old password</reason>\n";
+                echo "</result>";
+                die();
 			}
 		}
 	}
 
 	// Admin edits user
-	if ($_SESSION["user_data"]["sid"] > 1) {
-        if ((isset($_POST["newpass_1"])) && ($_POST["newpass_1"] != "")) {
-            $newpass_1 = validate_str($_POST["newpass_1"], $mydb->db);
-            $newpass_2 = validate_str($_POST["newpass_2"], $mydb->db);
+	else if ($_SESSION["user_data"]["sid"] > 1) {
+        if ((isset($_REQUEST["newpass_1"])) && ($_REQUEST["newpass_1"] != "")) {
+            $newpass_1 = validate_str($_REQUEST["newpass_1"], $mydb->db);
+            $newpass_2 = validate_str($_REQUEST["newpass_2"], $mydb->db);
             if (strcmp($newpass_1,$newpass_2) == 0) {
                 $hash = get_pwd_hash($newpass_1);
                 $mydb->updateUserPass($uid, $hash);
             } else {
 				$ok = false;
-                echo "<h1>Passwords dont match</h1><br/>go <a href=ftpass.php?edit=".$uid.">back</a>"; //TODO: also as JS
+                //echo "<h1>Passwords dont match</h1><br/>go <a href=ftpass.php?edit=".$uid.">back</a>";
+                header('Content-Type: application/xml');
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+                echo "<result>\n";
+                echo "\t<code>0</code>\n";
+                echo "\t<reason>Passwords dont match</reason>\n";
+                echo "</result>";
+                die();
             }
         } else {
             $mydb->updateUserStatus($uid, $enabled);
         }
     }
 
-    // Redirect if all ok
-	if ($ok) {
-		Header('Location: index.php?useredited='.$uid);
+    // Tell if all ok
+    if ($ok) {
+        header('Content-Type: application/xml');
+        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        echo "<result>\n";
+        echo "\t<code>1</code>\n";
+        echo "\t<reason>Change successful</reason>\n";
+        echo "</result>";
+        die();
 	}
-}
-
-
-/**
- * If user edited
- *
- */
-if ((isset($_REQUEST["useredited"])) && ($_SESSION["user_data"]["sid"] > 0)) {
-
-	$name = validate_str($_REQUEST["useredited"], $mydb->db);
-    echo "User $name edited";
-	echo "<br/><a href=index.php>ok</a>";
 }
 
 

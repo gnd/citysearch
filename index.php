@@ -65,7 +65,7 @@ if (!isset($_SESSION["user_logged"]) || ($_SESSION["user_logged"] === 0)) {
 else if (isset($_SESSION["user_logged"]) && ($_SESSION["user_logged"] === 1) && isset($_REQUEST["settings"]) && ($_REQUEST["settings"] === "1")) {
 
     user_pagetop($dev_version);
-    edit_user_form($_SESSION["user_data"]["name"], $_SESSION["user_data"]["id"], 1);
+    edit_user_form($_SESSION["user_data"]["name"], $_SESSION["user_data"]["id"], 1, true);
     echo "</body></html>";
     die();
 

@@ -119,29 +119,37 @@ class db {
         return $result;
     }
 
-    // create table ed_user ( uid int AUTO_INCREMENT PRIMARY KEY, username varchar(80), passwd varchar(80), sid int(11), enabled int(11), changed timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP);
+    // create table ed_user ( uid int AUTO_INCREMENT PRIMARY KEY, username varchar(80), passwd varchar(80), mail varchar(50), sid int(11), enabled int(11), changed timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP);
     function getUserPass($username) {
         $result = $this->db->query("SELECT passwd FROM " . $this->prfx . "_user WHERE username = '$username' and enabled = 1 LIMIT 1");
         return $result;
     }
 
     function getUserData($username) {
-        $result = $this->db->query("SELECT uid, username, sid, enabled, changed FROM " . $this->prfx . "_user WHERE username = '$username' LIMIT 1");
+        $result = $this->db->query("SELECT uid, username, mail, sid, enabled, changed FROM " . $this->prfx . "_user WHERE username = '$username' LIMIT 1");
         return $result;
     }
 
     function getUsers() {
-        $result = $this->db->query("SELECT uid, username, sid, enabled, changed FROM " . $this->prfx . "_user");
+        $result = $this->db->query("SELECT uid, username, mail, sid, enabled, changed FROM " . $this->prfx . "_user");
         return $result;
     }
 
-    function createUser($username, $hash, $sid) {
-        $result = $this->db->query("INSERT into " . $this->prfx . "_user VALUES(0, '$username','$hash', $sid, 1, now())");
+    // TODO - make this return userid
+    function createUser($username, $mail, $sid) {
+        $result = $this->db->query("INSERT into " . $this->prfx . "_user VALUES(0, '$username','','$mail', $sid, 0, now())");
         return $result;
     }
 
-    function updateUserPass() {
-        
+    // create table ed_invites (invid int AUTO_INCREMENT PRIMARY KEY, uid int, username varchar(80), hash varchar(16));
+    function createInviteHash($uid, $username, $hash) {
+        $result = $this->db->query("INSERT into " . $this->prfx . "_user VALUES(0, '$uid','$username','$hash')");
+        return $result;
+    }
+
+    function updateUserPass($uid, $hash) {
+        $result = $this->db->query("UPDATE " . $this->prfx . "_user SET passwd = '".$hash."' WHERE uid = '".$uid."'");
+        return $result;
     }
 
 }
