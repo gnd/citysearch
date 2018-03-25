@@ -16,8 +16,16 @@ function countContain(strPassword, strCheck) {
     return nCount;
 }
 
+// verify if good mail
+// TODO - send to functions
+function good_mail(mail) {
+    var reg = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return reg.test(mail);
+}
+
 // verify if good pass
 // TODO - make this more 'serious'
+// TODO - send to functions
 function good_pass(pass) {
     var m_strUpperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     var m_strLowerCase = "abcdefghijklmnopqrstuvwxyz";
@@ -63,19 +71,14 @@ function adduser() {
 
     // verify if params ok
     verify = false;
-    if (user_name in usernames) {
-        alert("Please provide a unique username");
+    if (good_mail(user_mail)) {
+        verify = true;
     } else {
-        if (user_mail not good) {
-            alert("Please provide a correct email");
-        } else {
-            verify = true;
-        }
+        alert("Please provide a correct email");
     }
 
     // if verify, run
     if (verify) {
-
         // setup params
         var params = "adduser=1";
         params += "&" + "name" + "=" + encodeURIComponent(user_name);
@@ -178,9 +181,8 @@ function processUserAddResponse() {
         alert(reason);
     }
 
-    // Clean the form
-    document.getElementById("newname").value = '';
-    document.getElementById("newmail").value = '';
+    // Reload the page
+    location.reload();
 }
 
 

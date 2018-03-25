@@ -135,20 +135,25 @@ class db {
         return $result;
     }
 
-    // TODO - make this return userid
     function createUser($username, $mail, $sid) {
-        $result = $this->db->query("INSERT into " . $this->prfx . "_user VALUES(0, '$username','','$mail', $sid, 0, now())");
+        $this->db->query("INSERT into " . $this->prfx . "_user VALUES(0, '$username','','$mail', $sid, 0, now())");
+        $result = mysqli_insert_id($this->db);
         return $result;
     }
 
     // create table ed_invites (invid int AUTO_INCREMENT PRIMARY KEY, uid int, username varchar(80), hash varchar(16));
-    function createInviteHash($uid, $username, $hash) {
-        $result = $this->db->query("INSERT into " . $this->prfx . "_user VALUES(0, '$uid','$username','$hash')");
+    function storeInviteHash($uid, $username, $hash) {
+        $result = $this->db->query("INSERT into " . $this->prfx . "_invites VALUES(0, '$uid','$username','$hash')");
         return $result;
     }
 
     function updateUserPass($uid, $hash) {
         $result = $this->db->query("UPDATE " . $this->prfx . "_user SET passwd = '".$hash."' WHERE uid = '".$uid."'");
+        return $result;
+    }
+
+    function checkMailExists($mail) {
+        $result = $this->db->query("SELECT count(mail) as count FROM " . $this->prfx . "_user WHERE mail = '".$mail."'");
         return $result;
     }
 

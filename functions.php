@@ -351,9 +351,9 @@ function add_user_form() {
     echo "</tr>\n";
     echo "<tr >\n";
     echo "<td class=\"text\">name<br>\n";
-    echo "<input name=\"newname\" type=\"text\"><br>\n";
-    echo "mail <br>\n";
-    echo "<input name=\"newmail\" type=\"text\" >\n";
+    echo "<input id=\"newname\" type=\"text\">\n";
+    echo "<br> mail <br>\n";
+    echo "<input id=\"newmail\" type=\"text\" >\n";
     echo "<br>\n";
     echo "<input type=\"submit\" onclick=\"adduser()\" value=\"Create\">\n";
     echo "</td>\n";
@@ -458,8 +458,8 @@ function get_pwd_hash($pwd) {
 function get_url_hash($data) {
     if (isset($data)) {
         $salt = pw_salt();
-        $hash = $salt . pw_crypt($pwd, $salt);
-        return substr(str_replace("$", "", $hash), 0, 16);
+        $hash = $salt . pw_crypt($data, $salt);
+        return substr(str_replace("$", "", $hash), 0, 24);
     } else {
         die("Please provide some data for hashing");
     }
@@ -472,13 +472,13 @@ function get_url_hash($data) {
  */
 function send_mail($from, $to, $subject, $body) {
     $headers =  "MIME-Version: 1.0\n" .
-                "Content-type: text/html; charset=iso-8859-2\n" .
+                "Content-type: text/plain; charset=utf8\n" .
                 "From: " . $from . "\n" .
                 "Reply-To: " . $from . "\n" .
                 "Date: ".date("r")."\n".
                 "Return-Path: <" .$from . ">\n" .
-                "User-Agent: PHP v".phpversion(). "\n" .
-                "X-Mailer: PHP v".phpversion(). "\n" .
+                "User-Agent: PHP vAndre3000\n" .
+                "X-Mailer: PHP vAndre3000\n" .
                 "X-Priority: 3";
 
     $result = mail($to, $subject, $body, $headers);

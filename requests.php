@@ -273,26 +273,13 @@ if (isset($_REQUEST["logout"]) && ($_REQUEST["logout"] === "1")) {
  */
 if ((isset($_REQUEST["adduser"])) && ($_SESSION["user_data"]["sid"] > 1)) {
 
-	$ok = true;
+	$ok = false;
 
-	$newname = validate_str($_POST["newname"], $mydb->db);
-	$newmail = validate_str($_POST["newpass_1"], $mydb->db);
+	$newname = validate_str($_POST["name"], $mydb->db);
+	$newmail = validate_str($_POST["mail"], $mydb->db);
 	$sid = 1; // hardcoded for the time being
 
-	if ($newname != "") {
-        if ($newmail != "") {
-        } else {
-            $ok = false;
-            header('Content-Type: application/xml');
-            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-            echo "<result>\n";
-            echo "\t<code>0</code>\n";
-            echo "\t<reason>Incorrect mail.</reason>\n";
-            echo "</result>";
-            die();
-        }
-	} else {
-		$ok = false;
+	if ($newname == "") {
         header('Content-Type: application/xml');
         echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
         echo "<result>\n";
@@ -300,20 +287,48 @@ if ((isset($_REQUEST["adduser"])) && ($_SESSION["user_data"]["sid"] > 1)) {
         echo "\t<reason>Name cant be empty.</reason>\n";
         echo "</result>";
         die();
+	} else {
+        if ($newmail == "") {
+            header('Content-Type: application/xml');
+            echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+            echo "<result>\n";
+            echo "\t<code>0</code>\n";
+            echo "\t<reason>Incorrect mail.</reason>\n";
+            echo "</result>";
+            die();
+        } else {
+            // check if mail already registered
+            $data = $mydb->checkMailExists($newmail);
+            $line = mysqli_fetch_array($data);
+            if ($line["count"] > 0) {
+                header('Content-Type: application/xml');
+                echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+                echo "<result>\n";
+                echo "\t<code>0</code>\n";
+                echo "\t<reason>Mail already registered</reason>\n";
+                echo "</result>";
+                die();
+            } else {
+                $ok = true;
+            }
+        }
 	}
 
 	if ($ok) {
         // Add user
-        $mydb->createUser($newname, $newmail, $sid);
+        $newuid = $mydb->createUser($newname, $newmail, $sid);
         // Generate invite code substr(hash username + mail + salt)
         $hash = get_url_hash($newname . $newmail);
-        $url = $SITE_URL + "/index.php?new=" + $hash;
-        // Create invite hash
-        $mydb->createInviteHash($newuid, $newname, $hash);
+        $url = $SITE_URL . "/index.php?new=" . $hash;
+        // Store hash in the db
+        $mydb->storeInviteHash($newuid, $newname, $hash);
+        // Create mail body
+        $body = "Hello $newname,\n\nwelcome to Citysearch!\n\nTo finish registration click on the following link to verify your account:\n";
+        $body = $body . $url . "\n\nThanks,\n\nCitysearch.";
         // Now send invitation mail
-        send_mail("citysearch@easterndaze.net", $newmail, "Welcome to Citysearch", "")
+        send_mail("citysearch@easterndaze.net", $newmail, "Welcome to Citysearch", $body);
 
-        // Announce result
+        // Announce success
         header('Content-Type: application/xml');
         echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
         echo "<result>\n";
@@ -344,7 +359,7 @@ if ((isset($_REQUEST["edituser"])) && ($_SESSION["user_data"]["sid"] > 0)) {
 	}
 
 	// User editing himself
-	if (($uid == $_SESSION["user_data"]["id"]) && ($_SESSION["user_data"]["sid"] > 1)) {
+	if (($uid == $_SESSION["user_data"]["id"]) && ($_SESSION["user_data"]["sid"] > 0)) {
 
         // check if we have username
         $username = $_SESSION["user_data"]["name"];
