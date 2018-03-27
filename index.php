@@ -62,13 +62,28 @@ if (!isset($_SESSION["user_logged"]) || ($_SESSION["user_logged"] === 0)) {
  *
  *
  */
-else if (isset($_SESSION["user_logged"]) && ($_SESSION["user_logged"] === 1) && isset($_REQUEST["settings"]) && ($_REQUEST["settings"] === "1")) {
+else if (isset($_SESSION["user_logged"]) && ($_SESSION["user_logged"] === 1) && isset($_REQUEST["settings"])) {
 
-    user_pagetop($dev_version);
-    edit_user_form($_SESSION["user_data"]["name"], $_SESSION["user_data"]["id"], 1, true);
-    echo "</body></html>";
-    die();
+    $uid = validate_int($_REQUEST["settings"], $mydb->db);
+    // user edits himself
+    if ($uid == $_SESSION["user_data"]["id"]) {
+        user_pagetop($dev_version);
+        edit_user_form($_SESSION["user_data"]["name"], $_SESSION["user_data"]["id"], 1, true);
+        echo "</body></html>";
+        die();
+    }
 
+    // admin edits user
+    else if ($_SESSION["user_data"]["sid"] > 1) {
+        $data = $mydb->getUserDataByID($uid);
+        $line = mysqli_fetch_array($data);
+        $username = $line["username"];
+        $enabled = $line["enabled"];
+        user_pagetop($dev_version);
+        edit_user_form($username, $uid, $enabled, false);
+        echo "</body></html>";
+        die();
+    }
 }
 
 
@@ -83,8 +98,9 @@ else if (isset($_SESSION["user_logged"]) && ($_SESSION["user_logged"] === 1) && 
   add_user_form();
 
     // USER TABLE STARTING
+    echo "<br/><br/>Manage users<br/>\n";
 	echo "<table border=\"0\" cellspacing=\"0\">\n";
-	echo "<tr class=\"user_admin_head\"><td class=\"btext\">Manage users</td><td></td></tr>\n";
+    echo "<tr><td>username&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td>role&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td>status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td>action</td></tr>\n";
     $data = $mydb->getUsers();
     while ($line = mysqli_fetch_array($data)) {
         display_user_data($line);

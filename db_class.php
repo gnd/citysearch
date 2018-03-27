@@ -120,13 +120,19 @@ class db {
     }
 
     // create table ed_user ( uid int AUTO_INCREMENT PRIMARY KEY, username varchar(80), passwd varchar(80), mail varchar(50), sid int(11), enabled int(11), changed timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP);
+    // TODO - omg fix this - username must be unique
     function getUserPass($username) {
         $result = $this->db->query("SELECT passwd FROM " . $this->prfx . "_user WHERE username = '$username' and enabled = 1 LIMIT 1");
         return $result;
     }
 
-    function getUserData($username) {
+    function getUserDataByName($username) {
         $result = $this->db->query("SELECT uid, username, mail, sid, enabled, changed FROM " . $this->prfx . "_user WHERE username = '$username' LIMIT 1");
+        return $result;
+    }
+
+    function getUserDataByID($uid) {
+        $result = $this->db->query("SELECT uid, username, mail, sid, enabled, changed FROM " . $this->prfx . "_user WHERE uid = '$uid' LIMIT 1");
         return $result;
     }
 

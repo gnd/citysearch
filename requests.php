@@ -35,7 +35,7 @@ if ( isset($_POST["name"]) && isset($_POST["pass"])) {
             session_regenerate_id();
 
             // then add data into it
-            $data = $mydb->getUserData($recv_name);
+            $data = $mydb->getUserDataByName($recv_name);
             $line = mysqli_fetch_array($data);
             $_SESSION["user_data"] = array('id' => $line["uid"],
                                             'name' => $line["username"],

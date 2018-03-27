@@ -214,7 +214,31 @@ function pagetop($dev_version) {
  *
  */
 function display_user_data($line) {
-    echo "<tr><td>". $line["username"] ." <a href=index.php?edituser=". $line["uid"] .">edit</a> <a href=index.php?deluser=". $line["uid"] .">del</a> </td><td></td></tr>\n";
+    //echo "<tr><td>username</td><td>role</td><td>status</td><td>action</td></tr>\n";
+
+    // Determine user role
+    switch ($line["sid"]) {
+        case 1:
+            $role = "user";
+            break;
+        case 2:
+            $role = "admin";
+            break;
+    }
+
+    // Determine user status
+    switch ($line["enabled"]) {
+        case -1:
+            $status = "invited";
+            break;
+        case 0:
+            $status = "inactive";
+            break;
+        case 1:
+            $status = "active";
+            break;
+    }
+    echo "<tr><td><a href=index.php?settings=". $line["uid"] .">". $line["username"] ."</a> </td><td>$role</td><td>$status</td><td><a href=index.php?deluser=". $line["uid"] .">delete</a> </td></tr>\n";
 }
 
 /**
@@ -372,18 +396,18 @@ function edit_user_form($username, $uid, $enabled, $self) {
     if ($_SESSION["user_data"]["sid"] > 0) {
         //echo "\t<br/>\n";
         echo "\t\t<table border=\"0\" cellpadding=\"20\" cellspacing=\"0\">\n";
-        if (!$self && $_SESSION["user_data"]["sid"] > 1) {
-            echo "\t\t\t<tr >\n";
-            echo "\t\t\t\t<td class=\"btext\">Edit " . $username;
-            echo "\t\t\t</tr>\n";
-        }
         echo "\t\t\t<tr >\n";
         echo "\t\t\t\t<td class=\"text\">\n";// name<br>\n";
         echo "\t\t\t\t\t<input id=\"uid\" type=\"hidden\" value=\"" . $uid . "\">\n";
-        echo "\t\t\t\t\t<input id=\"name\" type=\"hidden\" value=\"" . $username . "\" readonly><br>\n";
-        echo "\t\t\t\t\told password<br>\n";
-        echo "\t\t\t\t\t<input id=\"oldpass\" type=\"password\" >\n";
-        echo "\t\t\t\t\t<br>\n";
+        echo "\t\t\t\t\tusername<br>\n";
+        echo "\t\t\t\t\t<input id=\"name\" value=\"" . $username . "\" readonly><br>\n";
+        if (!$self && $_SESSION["user_data"]["sid"] > 1) {
+            echo "\t\t\t\t\t<input id=\"sid\" type=\"hidden\" value=\"2\">\n";
+        } else {
+            echo "\t\t\t\t\told password<br>\n";
+            echo "\t\t\t\t\t<input id=\"oldpass\" type=\"password\" >\n";
+            echo "\t\t\t\t\t<br>\n";
+        }
         echo "\t\t\t\t\tnew password (length at least 10 chars, MUST contain at least one: special character, number, big letter, small letter)<br>\n";
         echo "\t\t\t\t\t<input id=\"newpass_1\" type=\"password\" >\n";
         echo "\t\t\t\t\t<br>\n";
@@ -391,9 +415,17 @@ function edit_user_form($username, $uid, $enabled, $self) {
         echo "\t\t\t\t\t<input id=\"newpass_2\" type=\"password\" >\n";
         echo "\t\t\t\t\t<br>\n";
         if (!$self && $_SESSION["user_data"]["sid"] > 1) {
-            echo "\t\t\t\t\tEnabled \n";
-            echo "\t\t\t\t\t<input id=\"enabled\" type=\"checkbox\" " . $enabled ."><br>\n";
-            echo "\t\t\t\t\t<br><br/>\n";
+            if ($enabled > -1) {
+                $checked = "";
+                if ($enabled == 1) {
+                    $checked = "checked";
+                }
+                echo "\t\t\t\t\tEnabled \n";
+                echo "\t\t\t\t\t<input id=\"enabled\" type=\"checkbox\" " . $checked ."><br>\n";
+                echo "\t\t\t\t\t<br><br/>\n";
+            } else {
+                echo "\t\t\t\t\tUser invite pending \n";
+            }
         }
         echo "\t\t\t\t\t<input type=\"submit\" onclick=\"edituser()\" value=\"Edit\">\n";
         echo "\t\t\t\t</td>\n";

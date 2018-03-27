@@ -104,12 +104,23 @@ function edituser() {
 
     // get params
     var user_id = document.getElementById("uid").value;
+    if (document.getElementById("sid")) {
+        var user_sid = document.getElementById("sid").value;
+    } else {
+        var user_sid = 1;
+    }
     var user_name = document.getElementById("name").value;
-    var user_oldpass = document.getElementById("oldpass").value;
+    if (user_sid == 1) {
+        var user_oldpass = document.getElementById("oldpass").value;
+    }
     var user_newpass_a = document.getElementById("newpass_1").value;
     var user_newpass_b= document.getElementById("newpass_2").value;
     if (document.getElementById("enabled")) {
-        var user_enabled = document.getElementById("enabled").value;
+        if (document.getElementById("enabled").checked) {
+            user_enabled = 1;
+        } else {
+            user_enabled = 0;
+        }
     } else {
         var user_enabled = 666;
     }
@@ -119,7 +130,7 @@ function edituser() {
     if (user_newpass_a) {
         passchange = true;
         if (user_newpass_b) {
-            if (user_oldpass) {
+            if (user_oldpass || (user_sid > 1)) { // dont check oldpass if admin edits
                 if (user_newpass_a == user_newpass_b) {
                     var pass_result = good_pass(user_newpass_a);
                     var pass_good = pass_result[0];
@@ -200,7 +211,9 @@ function processUserEditResponse() {
     }
 
     // Clean the form
-    document.getElementById("oldpass").value = '';
+    if (document.getElementById("oldpass")) {
+        document.getElementById("oldpass").value = '';
+    }
     document.getElementById("newpass_1").value = '';
     document.getElementById("newpass_2").value = '';
 }
