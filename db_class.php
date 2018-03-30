@@ -147,9 +147,19 @@ class db {
         return $result;
     }
 
+    function deleteUser($uid) {
+        $result = $this->db->query("DELETE FROM " . $this->prfx . "_user WHERE uid = '$uid' LIMIT 1");
+        return $result;
+    }
+
     // create table ed_invites (invid int AUTO_INCREMENT PRIMARY KEY, uid int, username varchar(80), hash varchar(16));
     function storeInviteHash($uid, $username, $hash) {
         $result = $this->db->query("INSERT into " . $this->prfx . "_invites VALUES(0, '$uid','$username','$hash')");
+        return $result;
+    }
+
+    function deleteInvite($uid) {
+        $result = $this->db->query("DELETE FROM " . $this->prfx . "_invites WHERE uid = '$uid' LIMIT 1");
         return $result;
     }
 

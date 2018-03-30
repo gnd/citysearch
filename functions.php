@@ -238,7 +238,7 @@ function display_user_data($line) {
             $status = "active";
             break;
     }
-    echo "<tr><td><a href=index.php?settings=". $line["uid"] .">". $line["username"] ."</a> </td><td>$role</td><td>$status</td><td><a href=index.php?deluser=". $line["uid"] .">delete</a> </td></tr>\n";
+    echo "<tr><td><a href=index.php?settings=". $line["uid"] .">". $line["username"] ."</a> </td><td>$role</td><td>$status</td><td><a href=\"#\" onclick=deluser(". $line["uid"] .")>delete</a> </td></tr>\n";
 }
 
 /**

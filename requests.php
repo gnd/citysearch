@@ -462,6 +462,50 @@ if ((isset($_REQUEST["edituser"])) && ($_SESSION["user_data"]["sid"] > 0)) {
 }
 
 
+/**
+ * Delete a existing user or a invite
+ *
+ */
+if ((isset($_REQUEST["deluser"])) && ($_SESSION["user_data"]["sid"] > 1)) {
+
+    $ok = false;
+    $uid = validate_int($_REQUEST["deluser"], $mydb->db);
+
+    // check if user exists
+    $data = $mydb->getUserDataByID($uid);
+    $line = mysqli_fetch_array($data);
+    if ($line["uid"] == $uid) {
+        $ok = true;
+    } else {
+        header('Content-Type: application/xml');
+        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        echo "<result>\n";
+        echo "\t<code>0</code>\n";
+        echo "\t<reason>Nonexistent user</reason>\n";
+        echo "</result>";
+        die();
+    }
+
+    // Tell if all ok
+    if ($ok) {
+        $mydb->deleteUser($uid);
+        $mydb->deleteInvite($uid);
+        header('Content-Type: application/xml');
+        echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        echo "<result>\n";
+        echo "\t<code>1</code>\n";
+        echo "\t<reason>User deleted</reason>\n";
+        echo "</result>";
+        die();
+	}
+
+
+
+
+}
+
+
+
 // TODO: distinguish between user and sc_user
 /**
  * Adds a user id into the ignore list

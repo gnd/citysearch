@@ -178,6 +178,28 @@ function edituser() {
     }
 }
 
+// verify all paramters correct and POST
+function deluser(uid) {
+
+    if (window.XMLHttpRequest) {
+       xhttp = new XMLHttpRequest();
+    } else {    // IE 5/6
+       xhttp = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+
+    if (confirm("Are you sure you want to delete the user ?")) {
+        // setup params
+        var params = "deluser=";
+        params += encodeURIComponent(uid);
+
+        // initiate connection
+        xhttp.open("POST", "index.php", true);
+        xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        xhttp.addEventListener("load", processUserDeleteResponse);
+        xhttp.send(params);
+    }
+}
+
 
 function processUserAddResponse() {
 
@@ -216,4 +238,22 @@ function processUserEditResponse() {
     }
     document.getElementById("newpass_1").value = '';
     document.getElementById("newpass_2").value = '';
+}
+
+
+function processUserDeleteResponse() {
+
+    // get result code & reason
+    code = xhttp.responseXML.getElementsByTagName("code")[0].textContent;
+    reason = xhttp.responseXML.getElementsByTagName("reason")[0].textContent;
+
+    // Output response to user
+    if (code == 0) {
+        alert("Problem encountered: " + reason);
+    } else {
+        alert(reason);
+    }
+
+    // Reload the page
+    location.reload();
 }
